@@ -1,0 +1,173 @@
+{
+  "info": {
+    "name": "Renfo Backend API",
+    "_postman_id": "renfo-backend-v2",
+    "description": "Collection Postman — Auth (Register, Login) + routes publiques/protégées avec permissions bitmask",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000", "type": "string" },
+    { "key": "token", "value": "", "type": "string", "description": "JWT sauvegardé automatiquement après Login" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register (aucun droit)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"joueur1\",\n  \"email\": \"joueur1@test.com\",\n  \"password\": \"Test1234!\",\n  \"permissions\": 0\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] },
+            "description": "permissions=0 (0b00) → aucun droit"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["if(pm.response.code===201){const j=pm.response.json();pm.test('id present',()=>pm.expect(j.id).to.be.a('string'));pm.test('permissions=0',()=>pm.expect(j.permissions).to.eq(0))}"] } }]
+        },
+        {
+          "name": "Register (joueur — bit 0)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"joueur2\",\n  \"email\": \"joueur2@test.com\",\n  \"password\": \"Test1234!\",\n  \"permissions\": 1\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] },
+            "description": "permissions=1 (0b01) → JOUEUR"
+          }
+        },
+        {
+          "name": "Register (chef d'équipe — bit 1)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"chef1\",\n  \"email\": \"chef1@test.com\",\n  \"password\": \"Test1234!\",\n  \"permissions\": 2\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] },
+            "description": "permissions=2 (0b10) → CHEF_EQUIPE"
+          }
+        },
+        {
+          "name": "Register (admin — bits 0+1)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin1\",\n  \"email\": \"admin1@test.com\",\n  \"password\": \"Test1234!\",\n  \"permissions\": 3\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] },
+            "description": "permissions=3 (0b11) → tous les droits"
+          }
+        },
+        {
+          "name": "Login → sauvegarde token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"chef1@test.com\",\n  \"password\": \"Test1234!\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] },
+            "description": "Le token est sauvegardé dans {{token}} automatiquement. Change l'email pour tester avec des droits différents."
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["if(pm.response.code===200){const j=pm.response.json();pm.collectionVariables.set('token',j.accessToken);pm.test('Token saved',()=>pm.expect(j.accessToken).to.be.a('string'))}"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Routes",
+      "item": [
+        {
+          "name": "RandomRoute — GET /routes/random (public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/routes/random", "host": ["{{baseUrl}}"], "path": ["routes", "random"] },
+            "description": "Route publique, aucun token requis. Retourne timestamp + nombre aléatoire."
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 OK',()=>pm.expect(pm.response.code).to.eq(200));const j=pm.response.json();pm.test('has random',()=>pm.expect(j.random).to.be.a('number'));"] } }]
+        },
+        {
+          "name": "AdminRoute — GET /routes/admin (requiert CHEF_EQUIPE)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/routes/admin", "host": ["{{baseUrl}}"], "path": ["routes", "admin"] },
+            "description": "Route protégée. Nécessite JWT valide + bit CHEF_EQUIPE (permissions >= 2).\n\n✅ 200 si permissions = 2 ou 3\n❌ 403 si permissions = 0 ou 1\n❌ 401 si pas de token"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["const code=pm.response.code;if(code===200){const j=pm.response.json();pm.test('access granted',()=>pm.expect(j.message).to.include('accordé'));pm.test('permissions detail present',()=>pm.expect(j.permissions).to.have.property('binary'))}else if(code===403){pm.test('403 Forbidden (droits insuffisants)',()=>pm.expect(code).to.eq(403))}"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/admin/users", "host": ["{{baseUrl}}"], "path": ["admin", "users"] },
+            "description": "Liste tous les users (bits JOUEUR + CHEF requis)"
+          }
+        },
+        {
+          "name": "Add Permission",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"permission\": 1\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/admin/users/:id/permissions/add", "host": ["{{baseUrl}}"], "path": ["admin", "users", ":id", "permissions", "add"], "variable": [{ "key": "id", "value": "ID_A_REMPLACER" }] },
+            "description": "Ajoute un bit (OR). Ex: 1 pour JOUEUR, 2 pour CHEF_EQUIPE"
+          }
+        },
+        {
+          "name": "Remove Permission",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"permission\": 1\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/admin/users/:id/permissions/remove", "host": ["{{baseUrl}}"], "path": ["admin", "users", ":id", "permissions", "remove"], "variable": [{ "key": "id", "value": "ID_A_REMPLACER" }] },
+            "description": "Retire un bit (AND NOT). Ex: 1 pour JOUEUR, 2 pour CHEF_EQUIPE"
+          }
+        },
+        {
+          "name": "Toggle Permission",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"permission\": 1\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/admin/users/:id/permissions/toggle", "host": ["{{baseUrl}}"], "path": ["admin", "users", ":id", "permissions", "toggle"], "variable": [{ "key": "id", "value": "ID_A_REMPLACER" }] },
+            "description": "Bascule un bit (XOR). Ex: 1 pour JOUEUR, 2 pour CHEF_EQUIPE"
+          }
+        }
+      ]
+    }
+  ]
+}

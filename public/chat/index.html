@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Chat - Neo Brutalism</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <link rel="stylesheet" href="../styles.css">
+    <style>
+        body {
+            background: transparent; /* Pour l'iframe */
+            background-image: none;
+            overflow: hidden;
+            display: flex;
+            align-items: flex-end;
+            justify-content: flex-end;
+            height: 100vh;
+            padding: 20px;
+        }
+
+        /* Floating Bubble */
+        #chat-bubble {
+            width: 70px;
+            height: 70px;
+            background-color: var(--color-red);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1000;
+            transition: transform 0.2s;
+        }
+
+        #chat-bubble:hover { transform: scale(1.1) rotate(5deg); }
+
+        /* Chat Window */
+        #chat-window {
+            width: 350px;
+            height: 500px;
+            background: var(--bg-canvas);
+            display: none;
+            flex-direction: column;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.8) translateY(20px); opacity: 0; }
+            to { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
+        /* Header */
+        #chat-header {
+            padding: 15px;
+            background: var(--color-yellow);
+            border-bottom: var(--border-width) solid black;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* Messages Area */
+        #messages-container {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 10px 15px;
+            border: 3px solid black;
+            font-size: 14px;
+            font-weight: 700;
+            box-shadow: 4px 4px 0px 0px black;
+        }
+
+        .message.other {
+            align-self: flex-start;
+            background-color: white;
+            transform: rotate(-1deg);
+        }
+
+        .message.me {
+            align-self: flex-end;
+            background-color: var(--color-red);
+            color: black;
+            transform: rotate(1.5deg);
+        }
+
+        .sender {
+            font-size: 10px;
+            text-transform: uppercase;
+            font-weight: 900;
+            margin-bottom: 4px;
+        }
+
+        /* Typing */
+        .typing-msg {
+            background: white !important;
+            border-style: dashed !important;
+            box-shadow: none !important;
+            opacity: 0.7;
+            transform: none !important;
+        }
+
+        /* Input */
+        #chat-input-container {
+            padding: 15px;
+            background: white;
+            border-top: var(--border-width) solid black;
+            display: flex;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="chat-window" class="neo-border neo-shadow">
+        <div id="chat-header" style="cursor: pointer;">
+            <h3 style="margin:0; font-size: 1.2rem;">Public Tchat</h3>
+            <span id="conn-status" class="badge" style="background: white;">...</span>
+            <span id="current-user-info" style="font-size: 0.8rem; margin-left: auto; padding-right: 10px; opacity: 0.8; font-weight: 800;">Invité</span>
+        </div>
+        
+        <div id="messages-container"></div>
+
+        <div id="chat-input-container">
+            <input type="text" id="chat-input" class="neo-input" style="padding: 8px 12px; font-size: 0.9rem;" placeholder="Type something punk...">
+            <button id="send-btn" class="neo-btn neo-btn-primary" style="padding: 8px 15px;">GO</button>
+        </div>
+    </div>
+
+    <div id="chat-bubble" class="neo-border neo-shadow sticker-rotate-3">
+        <svg fill="black" width="35" height="35" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+    </div>
+
+    <script>
+        const bubble = document.getElementById('chat-bubble');
+        const windowEl = document.getElementById('chat-window');
+        const msgContainer = document.getElementById('messages-container');
+        const chatInput = document.getElementById('chat-input');
+        const sendBtn = document.getElementById('send-btn');
+        const statusEl = document.getElementById('conn-status');
+
+        const urlParams = new URLSearchParams(window.location.search);
+        let token = urlParams.get('token');
+        
+        // Si pas de token dans l'URL, tenter le localStorage (même domaine)
+        if (!token || token === 'undefined' || token === 'null') {
+            token = localStorage.getItem('token');
+        }
+
+        // Nettoyage final pour s'assurer qu'on n'envoie pas de chaîne bizarre
+        if (token === 'undefined' || token === 'null' || !token) {
+            token = null;
+        }
+
+        let socket;
+        let myUserId = null;
+        const typingTimeouts = new Map();
+
+        bubble.addEventListener('click', () => {
+            const isVisible = windowEl.style.display === 'flex';
+            windowEl.style.display = isVisible ? 'none' : 'flex';
+            bubble.style.display = isVisible ? 'flex' : 'none';
+            if (!isVisible) initSocket();
+            // Notifier le parent du changement de taille
+            window.parent.postMessage({ type: 'chat-resize', expanded: !isVisible }, '*');
+        });
+
+        // Fermer au clic sur header
+        document.getElementById('chat-header').addEventListener('click', () => {
+            windowEl.style.display = 'none';
+            bubble.style.display = 'flex';
+            window.parent.postMessage({ type: 'chat-resize', expanded: false }, '*');
+        });
+
+        function initSocket() {
+            if (socket) return;
+
+            socket = io('/chat', {
+                auth: { token: token },
+                query: { token: token },
+                transports: ['websocket', 'polling']
+            });
+
+            socket.on('connect', () => {
+                statusEl.textContent = 'ON';
+                statusEl.style.background = 'var(--color-yellow)';
+                
+                const userInfoEl = document.getElementById('current-user-info');
+                if (token) {
+                    try {
+                        const payload = JSON.parse(atob(token.split('.')[1]));
+                        myUserId = payload.id || payload.sub;
+                        if (payload.username && userInfoEl) {
+                            userInfoEl.textContent = payload.username;
+                        }
+                    } catch(e) {
+                        if (userInfoEl) userInfoEl.textContent = 'Err Token';
+                    }
+                } else {
+                    if (userInfoEl) userInfoEl.textContent = 'Lecture seule';
+                }
+            });
+
+            socket.on('disconnect', () => {
+                statusEl.textContent = 'OFF';
+                statusEl.style.background = 'var(--color-red)';
+            });
+
+            socket.on('history', (messages) => {
+                msgContainer.innerHTML = '';
+                messages.forEach(addMessage);
+            });
+
+            socket.on('message', (msg) => {
+                removeTypingIndicator(msg.senderId);
+                addMessage(msg);
+            });
+
+            socket.on('userTyping', (data) => {
+                handleTypingIndicator(data);
+            });
+        }
+
+        function addMessage(msg) {
+            const isMe = msg.senderId === myUserId;
+            const div = document.createElement('div');
+            div.className = `message ${isMe ? 'me' : 'other'}`;
+            div.innerHTML = `
+                <div class="sender">${msg.senderUsername}</div>
+                <div class="text">${msg.text}</div>
+            `;
+            msgContainer.appendChild(div);
+            msgContainer.scrollTop = msgContainer.scrollHeight;
+        }
+
+        function handleTypingIndicator(data) {
+            removeTypingIndicator(data.senderId);
+            if (!data.text) return;
+
+            const div = document.createElement('div');
+            div.className = 'message other typing-msg';
+            div.id = `typing-${data.senderId}`;
+            div.innerHTML = `
+                <div class="sender">${data.senderUsername} writes...</div>
+                <div class="text">${data.text}</div>
+            `;
+            msgContainer.appendChild(div);
+            msgContainer.scrollTop = msgContainer.scrollHeight;
+
+            clearTimeout(typingTimeouts.get(data.senderId));
+            const timeout = setTimeout(() => removeTypingIndicator(data.senderId), 5000);
+            typingTimeouts.set(data.senderId, timeout);
+        }
+
+        function removeTypingIndicator(userId) {
+            const el = document.getElementById(`typing-${userId}`);
+            if (el) el.remove();
+        }
+
+        sendBtn.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+        chatInput.addEventListener('input', () => { socket.emit('typing', { text: chatInput.value }); });
+
+        function sendMessage() {
+            const text = chatInput.value.trim();
+            if (!text) return;
+            socket.emit('sendMessage', { text });
+            chatInput.value = '';
+            socket.emit('typing', { text: '' });
+        }
+    </script>
+</body>
+</html>
