@@ -1,0 +1,39 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_IP }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            # Navigate to the project directory (User should update this path)
+            cd ~/renfo-backend-project || mkdir -p ~/renfo-backend-project && cd ~/renfo-backend-project
+            
+            # Pull latest changes (assuming the VPS is already a git repo)
+            if [ -d ".git" ]; then
+              git pull origin main
+            else
+              git clone https://github.com/VictorMusta/core-context-archi.git .
+            fi
+            
+            # Create/Update .env file from secrets
+            echo "DATABASE_URL=postgres://postgres:postgres@db:5432/renfo" > .env
+            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+            echo "JWT_EXPIRES_IN=${{ secrets.JWT_EXPIRES_IN }}" >> .env
+            
+            # Restart containers
+            docker-compose up -d --build

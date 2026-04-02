@@ -1,6 +1,19 @@
 version: '3.8'
 
 services:
+  app:
+    build: .
+    container_name: renfo-app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/renfo
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
+    depends_on:
+      - db
+
   db:
     image: postgres:15
     container_name: renfo-db
