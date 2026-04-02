@@ -6,7 +6,7 @@ services:
     container_name: renfo-app
     restart: always
     ports:
-      - "3000:3000"
+      - "6969:6969"
     environment:
       - DATABASE_URL=postgres://postgres:postgres@db:5432/renfo
       - JWT_SECRET=${JWT_SECRET}
