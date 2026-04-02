@@ -23,6 +23,8 @@ export class AthletesController {
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequiresPermissions(Permission.JOUEUR, Permission.CHEF_EQUIPE) // Simule Admin (3)
   async generate(@Body('name') name: string) {
-    return this.generateAthleteUseCase.execute(name || 'Pro Player ' + Math.floor(Math.random() * 1000));
+    return this.generateAthleteUseCase.execute(
+      name || 'Pro Player ' + Math.floor(Math.random() * 1000),
+    );
   }
 }

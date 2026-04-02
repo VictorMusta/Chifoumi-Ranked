@@ -7,5 +7,9 @@ export interface MatchStats {
 
 export interface MatchStatsRepository {
   getStats(): Promise<MatchStats>;
-  updateStats(won: boolean, username: string, roundsInMatch: number): Promise<void>;
+  updateStats(
+    won: boolean,
+    username: string,
+    roundsInMatch: number,
+  ): Promise<void>;
 }

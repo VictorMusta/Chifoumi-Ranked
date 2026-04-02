@@ -96,7 +96,52 @@ logoutBtn.addEventListener('click', () => {
     location.reload();
 });
 
-function checkAuth() {
+async function fetchUserProfile() {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+        const res = await fetch('/auth/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (res.ok) {
+            window.currentUser = data;
+            updateSubscriptionUI(data);
+            return data;
+        }
+    } catch (err) {
+        console.error('Failed to fetch user profile', err);
+    }
+}
+
+function updateSubscriptionUI(user) {
+    const statusEl = document.getElementById('sub-status');
+    const trialEl = document.getElementById('trial-counter');
+    const trialsCountEl = document.getElementById('remaining-trials');
+    const upgradeBtn = document.getElementById('upgrade-pro-btn');
+    const referralCodeInput = document.getElementById('my-referral-code');
+
+    const tiers = ['GRATUIT (Limitée)', 'BASIQUE (2x Pierre)', 'PREMIUM PRO 👑'];
+    statusEl.textContent = tiers[user.subscriptionTier] || 'Inconnu';
+    
+    if (user.subscriptionTier < 2 && user.remainingTrialMatches > 0) {
+        trialEl.classList.remove('hidden');
+        trialsCountEl.textContent = user.remainingTrialMatches;
+    } else {
+        trialEl.classList.add('hidden');
+    }
+
+    if (user.subscriptionTier === 2) {
+        upgradeBtn.classList.add('hidden');
+        referralCodeInput.value = user.generatedReferralCode || '';
+        referralCodeInput.placeholder = user.generatedReferralCode ? '' : 'Code prêt à être généré !';
+    } else {
+        upgradeBtn.classList.remove('hidden');
+    }
+}
+
+async function checkAuth() {
     const token = localStorage.getItem('token');
     const username = localStorage.getItem('username');
 
@@ -104,12 +149,66 @@ function checkAuth() {
         authView.classList.add('hidden');
         dashboardView.classList.remove('hidden');
         displayName.textContent = username || 'Champion';
+        await fetchUserProfile();
         injectChat(token);
         initRpsGame(token);
+        setupSubscriptionPage();
     } else {
         authView.classList.remove('hidden');
         dashboardView.classList.add('hidden');
     }
+}
+
+function setupSubscriptionPage() {
+    const upgradeBtn = document.getElementById('upgrade-pro-btn');
+    const genCodeBtn = document.getElementById('gen-code-btn');
+    const redeemCodeBtn = document.getElementById('redeem-code-btn');
+    const token = localStorage.getItem('token');
+
+    upgradeBtn.onclick = async () => {
+        const res = await fetch('/stripe/checkout', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ tier: 'pro' })
+        });
+        const data = await res.json();
+        if (data.url) window.location.href = data.url;
+    };
+
+    genCodeBtn.onclick = async () => {
+        const res = await fetch('/auth/referral/generate', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.code) {
+           document.getElementById('my-referral-code').value = data.code;
+        } else {
+            alert(data.message || 'Erreur lors de la génération');
+        }
+    };
+
+    redeemCodeBtn.onclick = async () => {
+        const code = document.getElementById('redeem-code-input').value;
+        const res = await fetch('/auth/referral/redeem', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ code })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert('BRAVO ! Tu es PRO !');
+            window.location.reload();
+        } else {
+            alert(data.message || 'Code invalide');
+        }
+    };
 }
 
 function initRpsGame(token) {
@@ -136,21 +235,33 @@ function initRpsGame(token) {
         gameSocket.on('globalStatsUpdate', updateGlobalStats);
         
         gameSocket.on('matchFound', (data) => {
-            currentMatchId = data.matchId;
-            document.getElementById('opponent-name').textContent = data.opponent1 === localStorage.getItem('username') ? data.opponent2 : data.opponent1;
+            console.log('[RPS] Match Found:', data);
+            window.currentMatch = data;
+            document.getElementById('opponent-name').textContent = data.yourPosition === 1 ? data.opponent2 : data.opponent1;
+            document.getElementById('my-score').textContent = '0';
+            document.getElementById('opp-score').textContent = '0';
             showView('game');
             startRoundCountdown();
         });
 
         gameSocket.on('roundResult', (result) => {
+            console.log('[RPS] Round Result:', result);
             displayRoundResult(result);
             setTimeout(() => { if (!result.isMatchOver) startRoundCountdown(); }, 3000);
         });
 
         gameSocket.on('matchOver', (data) => {
-            const isWinner = data.winnerId === localStorage.getItem('userId');
-            document.getElementById('final-result-title').textContent = isWinner ? 'VICTOIRE ! 🎉' : 'DÉFAITE... 💀';
+            console.log('[RPS] Match Over:', data);
+            const myPos = window.currentMatch?.yourPosition;
+            const win = (myPos === 1 && data.p1Score > data.p2Score) || (myPos === 2 && data.p2Score > data.p1Score);
+            const draw = data.p1Score === data.p2Score;
+            
+            // Adjust if winnerId was sent explicitly (forfeits etc)
+            const finalWin = data.winnerId ? String(data.winnerId) === String(localStorage.getItem('userId')) : win;
+            
+            document.getElementById('final-result-title').textContent = draw ? 'ÉGALITÉ !' : (finalWin ? 'VICTOIRE ! 🎉' : 'DÉFAITE... 💀');
             showView('match-over');
+            window.currentMatch = null;
         });
     }
 
@@ -171,7 +282,22 @@ function initRpsGame(token) {
     function startRoundCountdown() {
         let timeLeft = 2.0;
         selectedMove = null;
-        choiceButtons.forEach(btn => { btn.classList.remove('selected'); btn.disabled = false; });
+        
+        const userTier = window.currentUser?.subscriptionTier || 0;
+        const hasTrials = (window.currentUser?.remainingTrialMatches || 0) > 0;
+
+        choiceButtons.forEach(btn => { 
+            btn.classList.remove('selected'); 
+            btn.disabled = false; 
+            
+            // Paywall: Lock Rock for FREE users (tier 0) if no trials
+            if (btn.dataset.move === 'rock' && userTier === 0 && !hasTrials) {
+                btn.disabled = true;
+                btn.title = "DÉBLOQUEZ LA PIERRE POUR 5€ !";
+                btn.style.opacity = "0.5";
+            }
+        });
+        
         roundMsgEl.textContent = 'Choisissez votre coup !';
         countdownEl.textContent = timeLeft.toFixed(1);
         if (countdownInterval) clearInterval(countdownInterval);
@@ -190,13 +316,31 @@ function initRpsGame(token) {
     }
 
     function displayRoundResult(result) {
-        document.getElementById('my-score').textContent = result.p1Score; // Simplified logic for display
-        document.getElementById('opp-score').textContent = result.p2Score;
-        const myId = localStorage.getItem('userId');
-        const win = result.winnerId === myId;
+        const myPos = window.currentMatch?.yourPosition;
+        const isP1 = myPos === 1;
+        
+        document.getElementById('my-score').textContent = isP1 ? result.p1Score : result.p2Score;
+        document.getElementById('opp-score').textContent = isP1 ? result.p2Score : result.p1Score;
+        
+        const myId = String(localStorage.getItem('userId'));
+        const win = (isP1 && result.winnerId === window.currentMatch?.p1Id && result.winnerId !== null) || 
+                    (!isP1 && result.winnerId === window.currentMatch?.p2Id && result.winnerId !== null);
+        
+        // Simpler win check if winnerId is definitive
+        const absoluteWin = result.winnerId && result.winnerId === myId;
+        // BUT if playing against self, we MUST use position-based check on a specific winnerRef
+        const realWin = (isP1 && result.winnerId === window.currentMatch?.p1Id) || 
+                       (!isP1 && result.winnerId === window.currentMatch?.p2Id);
+        
         const draw = result.winnerId === null;
+        
+        // Final sanity check: if playing against self, we rely on result position logic?
+        // No, backend result.winnerId is correctly set to p1Id or p2Id.
+        // If myId matches winnerId, I win. Simple and robust.
+        
         roundMsgEl.textContent = draw ? 'ÉGALITÉ !' : (win ? 'MANCHE GAGNÉE ! ✅' : 'MANCHE PERDUE... ❌');
         roundMsgEl.style.background = draw ? '#eee' : (win ? '#d4edda' : '#f8d7da');
+        roundMsgEl.style.color = 'black'; // Ensure readability
     }
 
     playRpsBtn.addEventListener('click', () => {

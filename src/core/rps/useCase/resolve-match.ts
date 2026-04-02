@@ -1,4 +1,8 @@
-import { TournamentRepository, AthleteRepository, TeamRepository } from '../ports/rps-repository';
+import {
+  TournamentRepository,
+  AthleteRepository,
+  TeamRepository,
+} from '../ports/rps-repository';
 import { MatchEngine } from './match-engine';
 import { Match } from '../entity/tournament';
 import { Team } from '../entity/team';
@@ -15,7 +19,7 @@ export class ResolveMatchUseCase {
     const tournament = await this.tournamentRepo.findById(tournamentId);
     if (!tournament) throw new Error('Tournoi non trouvé');
 
-    const match = tournament.matches.find(m => m.id === matchId);
+    const match = tournament.matches.find((m) => m.id === matchId);
     if (!match) throw new Error('Match non trouvé');
     if (match.winnerId) throw new Error('Match déjà terminé');
 
@@ -28,7 +32,7 @@ export class ResolveMatchUseCase {
     // Résolution
     const resolution = this.engine.resolveDuel(athleteA, athleteB);
     const winnerId = resolution.winnerId;
-    
+
     // Si nul
     if (!winnerId) {
       match.drawCount++;
@@ -37,16 +41,17 @@ export class ResolveMatchUseCase {
       }
     } else {
       match.winnerId = winnerId;
-      
+
       // Récompense monétaire pour l'équipe gagnante
-      const winningTeamId = winnerId === athleteA.id ? match.teamAId : match.teamBId;
+      const winningTeamId =
+        winnerId === athleteA.id ? match.teamAId : match.teamBId;
       const team = await this.teamRepo.findById(winningTeamId);
       if (team) {
         const updatedTeam = new Team(
           team.id,
           team.ownerId,
           team.budget + 500,
-          team.athletes
+          team.athletes,
         );
         await this.teamRepo.save(updatedTeam);
       }

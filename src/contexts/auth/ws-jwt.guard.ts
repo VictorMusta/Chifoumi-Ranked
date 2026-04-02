@@ -9,18 +9,18 @@ export class WsJwtAuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     try {
       const client = context.switchToWs().getClient();
-      const token = 
-        client.handshake.auth?.token || 
-        client.handshake.query?.token || 
+      const token =
+        client.handshake.auth?.token ||
+        client.handshake.query?.token ||
         client.handshake.headers?.authorization?.split(' ')[1];
-      
-    if (
-      !token ||
-      token === 'undefined' ||
-      token === 'null' ||
-      token === '' ||
-      token === 'Bearer'
-    ) {
+
+      if (
+        !token ||
+        token === 'undefined' ||
+        token === 'null' ||
+        token === '' ||
+        token === 'Bearer'
+      ) {
         return false;
       }
 

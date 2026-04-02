@@ -1,9 +1,4 @@
-import {
-  Controller,
-  Get,
-  Request,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Request, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -40,11 +35,18 @@ export class RoutesController {
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequiresPermissions(Permission.CHEF_EQUIPE)
   @ApiBearerAuth('JWT')
-  @ApiOperation({ summary: 'Route protégée (AdminRoute) — requiert CHEF_EQUIPE (bit 1)' })
+  @ApiOperation({
+    summary: 'Route protégée (AdminRoute) — requiert CHEF_EQUIPE (bit 1)',
+  })
   @ApiResponse({ status: 200, description: 'Accès accordé' })
   @ApiResponse({ status: 401, description: 'Token manquant ou invalide' })
   @ApiResponse({ status: 403, description: 'Droits insuffisants' })
-  adminRoute(@Request() req: { user: { userId: string; username: string; permissions: number } }) {
+  adminRoute(
+    @Request()
+    req: {
+      user: { userId: string; username: string; permissions: number };
+    },
+  ) {
     const { userId, username, permissions } = req.user;
     return {
       message: 'AdminRoute — accès accordé ✅',

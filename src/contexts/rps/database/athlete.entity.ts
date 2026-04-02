@@ -1,4 +1,10 @@
-import { Entity, PrimaryColumn, Column, ManyToOne, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryColumn,
+  Column,
+  ManyToOne,
+  CreateDateColumn,
+} from 'typeorm';
 import { TeamOrmEntity } from './team.entity';
 
 @Entity('athletes')
@@ -24,7 +30,10 @@ export class AthleteOrmEntity {
   @Column({ type: 'uuid', nullable: true })
   teamId: string | null;
 
-  @ManyToOne(() => TeamOrmEntity, (team) => team.athletes, { nullable: true, onDelete: 'SET NULL' })
+  @ManyToOne(() => TeamOrmEntity, (team) => team.athletes, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
   team: TeamOrmEntity | null;
 
   @CreateDateColumn()

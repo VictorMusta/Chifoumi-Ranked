@@ -7,7 +7,10 @@ export enum RpsChoice {
 }
 
 export class MatchEngine {
-  resolveDuel(athleteA: Athlete, athleteB: Athlete): {
+  resolveDuel(
+    athleteA: Athlete,
+    athleteB: Athlete,
+  ): {
     choiceA: RpsChoice;
     choiceB: RpsChoice;
     winnerId: string | null;
@@ -31,7 +34,11 @@ export class MatchEngine {
     };
   }
 
-  private getWeightedChoice(probs: { rock: number; paper: number; scissors: number }): RpsChoice {
+  private getWeightedChoice(probs: {
+    rock: number;
+    paper: number;
+    scissors: number;
+  }): RpsChoice {
     const r = Math.random() * 100;
     if (r < probs.rock) return RpsChoice.ROCK;
     if (r < probs.rock + probs.paper) return RpsChoice.PAPER;

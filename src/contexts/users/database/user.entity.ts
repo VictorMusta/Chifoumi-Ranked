@@ -23,6 +23,15 @@ export class UserOrmEntity {
   @Column({ type: 'int', default: 0 })
   permissions: number;
 
+  @Column({ type: 'int', default: 0 })
+  subscriptionTier: number; // 0: FREE, 1: BASIC, 2: PRO
+
+  @Column({ type: 'int', default: 5 })
+  remainingTrialMatches: number;
+
+  @Column({ type: 'varchar', nullable: true, unique: true })
+  generatedReferralCode: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

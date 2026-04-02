@@ -82,7 +82,7 @@
                         <strong id="stat-best-streak">-</strong>
                     </div>
                     <div class="record-row">
-                        <span>Record Holder</span>
+                        <span>Best Holder</span>
                         <strong id="stat-best-holder">-</strong>
                     </div>
                     <div class="record-row">
@@ -95,6 +95,40 @@
                     </div>
                 </div>
             </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 40px;">
+            <!-- Subscription Card -->
+            <div class="neo-card sticker-rotate-neg-1" style="padding: 30px; background: var(--color-ink); color: white; border-color: white;">
+                <h2 style="font-size: 2rem; margin-bottom: 15px; color: var(--color-yellow);">Mon Offre 💎</h2>
+                <p id="sub-status" style="font-weight: 800; font-size: 1.2rem; margin-bottom: 10px;">Chargement...</p>
+                <div id="trial-counter" style="background: var(--color-red); color: black; display: inline-block; padding: 5px 10px; font-weight: 900; margin-bottom: 20px;" class="hidden">
+                    ESSAI : <span id="remaining-trials">0</span> MATCHS RESTANTS
+                </div>
+                <div id="sub-actions">
+                    <button class="neo-btn neo-btn-primary" id="upgrade-pro-btn" style="width: 100%; border-color: white;">PASSER PRO (Unlock Rock 🪨)</button>
+                </div>
+            </div>
+
+            <!-- Referral Card -->
+            <div class="neo-card sticker-rotate-1" style="padding: 30px; background: var(--color-pink);">
+                <h2 style="font-size: 2rem; margin-bottom: 15px;">Viral Bonus 🚀</h2>
+                <div id="referral-gen-section">
+                    <p style="font-weight: 800; margin-bottom: 10px;">Partage ton code PRO :</p>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="my-referral-code" class="neo-input" readonly placeholder="Deviens PRO d'abord" style="flex: 1;">
+                        <button class="neo-btn neo-btn-secondary" id="gen-code-btn">GÉNÉRER</button>
+                    </div>
+                </div>
+                <div id="referral-redeem-section" style="margin-top: 20px;">
+                    <p style="font-weight: 800; margin-bottom: 10px;">Utiliser un code ami (100% Promo) :</p>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="redeem-code-input" class="neo-input" placeholder="ROCK-XXXXXX" style="flex: 1;">
+                        <button class="neo-btn neo-btn-primary" id="redeem-code-btn">REJOINDRE</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
     <!-- Modal de Jeu RPS -->
     <div id="game-modal" class="modal-overlay" style="display: none;">

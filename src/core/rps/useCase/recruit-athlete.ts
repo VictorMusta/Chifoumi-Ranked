@@ -20,7 +20,7 @@ export class RecruitAthleteUseCase {
     }
 
     if (team.isFull()) {
-      throw new Error('L\'équipe est déjà complète (max 5 joueurs)');
+      throw new Error("L'équipe est déjà complète (max 5 joueurs)");
     }
 
     // Mise à jour de l'athlète et de la team
@@ -29,14 +29,14 @@ export class RecruitAthleteUseCase {
       athlete.name,
       athlete.probabilities,
       athlete.value,
-      team.id
+      team.id,
     );
 
     const updatedTeam = new (team.constructor as any)(
       team.id,
       team.ownerId,
       team.budget - athlete.value,
-      [...team.athletes, updatedAthlete]
+      [...team.athletes, updatedAthlete],
     );
 
     // Persistance

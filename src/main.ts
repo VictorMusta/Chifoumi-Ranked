@@ -5,7 +5,9 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    rawBody: true,
+  });
 
   app.useStaticAssets(join(__dirname, '..', 'public'));
 
@@ -15,7 +17,7 @@ async function bootstrap() {
   // Swagger
   const config = new DocumentBuilder()
     .setTitle('Renfo API')
-    .setDescription('API d\'authentification — Register & Login')
+    .setDescription("API d'authentification — Register & Login")
     .setVersion('1.0')
     .addBearerAuth(
       { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
@@ -27,7 +29,11 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, document);
 
   await app.listen(process.env.PORT ?? 6969, '0.0.0.0');
-  console.log(`🚀 Application running on: http://localhost:${process.env.PORT ?? 6969}`);
-  console.log(`📖 Swagger UI: http://localhost:${process.env.PORT ?? 6969}/api/docs`);
+  console.log(
+    `🚀 Application running on: http://localhost:${process.env.PORT ?? 6969}`,
+  );
+  console.log(
+    `📖 Swagger UI: http://localhost:${process.env.PORT ?? 6969}/api/docs`,
+  );
 }
 bootstrap();

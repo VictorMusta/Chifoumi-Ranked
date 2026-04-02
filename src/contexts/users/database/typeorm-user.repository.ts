@@ -19,6 +19,9 @@ export class TypeOrmUserRepository implements UserRepository {
       email: user.email,
       hashedPassword: user.hashedPassword,
       permissions: user.permissions,
+      subscriptionTier: user.subscriptionTier,
+      remainingTrialMatches: user.remainingTrialMatches,
+      generatedReferralCode: user.generatedReferralCode,
     });
     await this.repo.save(orm);
     return user;
@@ -44,7 +47,10 @@ export class TypeOrmUserRepository implements UserRepository {
     return orms.map((o) => this.toDomain(o));
   }
 
-  async updatePermissions(id: string, permissions: number): Promise<User | null> {
+  async updatePermissions(
+    id: string,
+    permissions: number,
+  ): Promise<User | null> {
     await this.repo.update({ id }, { permissions });
     return this.findById(id);
   }
@@ -56,6 +62,9 @@ export class TypeOrmUserRepository implements UserRepository {
       orm.email,
       orm.hashedPassword,
       orm.permissions,
+      orm.subscriptionTier,
+      orm.remainingTrialMatches,
+      orm.generatedReferralCode,
     );
   }
 }

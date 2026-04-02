@@ -8,9 +8,19 @@ export class SendMessageUseCase {
     private readonly idGenerator: IdGenerator,
   ) {}
 
-  async execute(text: string, senderId: string, senderUsername: string): Promise<ChatMessage> {
+  async execute(
+    text: string,
+    senderId: string,
+    senderUsername: string,
+  ): Promise<ChatMessage> {
     const id = this.idGenerator.generate();
-    const chatMessage = new ChatMessage(id, text, senderId, senderUsername, new Date());
+    const chatMessage = new ChatMessage(
+      id,
+      text,
+      senderId,
+      senderUsername,
+      new Date(),
+    );
     await this.chatRepository.save(chatMessage);
     return chatMessage;
   }

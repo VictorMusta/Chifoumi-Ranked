@@ -26,7 +26,16 @@ export class RegisterUseCase {
 
     const id = this.idGenerator.generate();
     const hashedPassword = await this.passwordHasher.hash(dto.password);
-    const user = new User(id, dto.username, dto.email, hashedPassword, dto.permissions ?? 0);
+    const user = new User(
+      id,
+      dto.username,
+      dto.email,
+      hashedPassword,
+      dto.permissions ?? 0,
+      0, // Tier FREE
+      5, // 5 Trial matches
+      null, // No referral code yet
+    );
     await this.userRepository.save(user);
     return user;
   }

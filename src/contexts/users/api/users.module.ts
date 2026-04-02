@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, Global } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
@@ -17,6 +17,7 @@ import { AdminController } from './admin.controller';
 import { JwtStrategy } from '../../auth/jwt.strategy';
 import { PermissionsGuard } from '../../auth/permissions.guard';
 
+@Global()
 @Module({
   imports: [
     ConfigModule,
@@ -27,7 +28,7 @@ import { PermissionsGuard } from '../../auth/permissions.guard';
       useFactory: (configService: ConfigService) => ({
         secret: configService.getOrThrow<string>('JWT_SECRET'),
         signOptions: {
-          expiresIn: (configService.get<string>('JWT_EXPIRES_IN', '7d')) as any,
+          expiresIn: configService.get<string>('JWT_EXPIRES_IN', '7d') as any,
         },
       }),
       inject: [ConfigService],
@@ -59,6 +60,14 @@ import { PermissionsGuard } from '../../auth/permissions.guard';
       ) => new LoginUseCase(repo, hasher, tokenGen),
       inject: [TypeOrmUserRepository, PasswordHasherAdapter, JwtTokenGenerator],
     },
+  ],
+  exports: [
+    TypeOrmUserRepository,
+    RegisterUseCase,
+    LoginUseCase,
+    PassportModule,
+    JwtStrategy,
+    JwtModule,
   ],
 })
 export class UsersModule {}

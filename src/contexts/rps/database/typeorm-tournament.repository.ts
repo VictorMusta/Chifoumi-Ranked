@@ -28,10 +28,10 @@ export class TypeOrmTournamentRepository implements TournamentRepository {
   async findById(id: string): Promise<Tournament | null> {
     const orm = await this.tournamentRepo.findOne({ where: { id } });
     if (!orm) return null;
-    
+
     // Charger les matchs pour hydrater l'agrégat
     const matches = await this.findMatchesByTournamentId(id);
-    
+
     return new Tournament(orm.id, orm.name, orm.status, orm.teamIds, matches);
   }
 

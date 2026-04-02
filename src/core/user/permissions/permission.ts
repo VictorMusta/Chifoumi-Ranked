@@ -13,7 +13,7 @@
  *   permissions = 3  (0b11) → admin (tous les droits)
  */
 export enum Permission {
-  JOUEUR      = 0b01, // 1
+  JOUEUR = 0b01, // 1
   CHEF_EQUIPE = 0b10, // 2
 }
 
@@ -21,11 +21,17 @@ export enum Permission {
  * Vérifie si un user possède le droit requis via AND binaire.
  * Un admin (0b11) passe toutes les vérifications.
  */
-export function hasPermission(userPermissions: number, required: Permission): boolean {
+export function hasPermission(
+  userPermissions: number,
+  required: Permission,
+): boolean {
   return (userPermissions & required) === required;
 }
 
 /** Vérifie si un user possède TOUS les droits listés. */
-export function hasAllPermissions(userPermissions: number, ...required: Permission[]): boolean {
+export function hasAllPermissions(
+  userPermissions: number,
+  ...required: Permission[]
+): boolean {
   return required.every((p) => hasPermission(userPermissions, p));
 }

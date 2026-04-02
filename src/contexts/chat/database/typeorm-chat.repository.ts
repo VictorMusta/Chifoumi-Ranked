@@ -32,7 +32,13 @@ export class TypeOrmChatRepository implements ChatRepository {
     return entities
       .map(
         (e) =>
-          new ChatMessage(e.id, e.text, e.senderId, e.senderUsername, e.createdAt),
+          new ChatMessage(
+            e.id,
+            e.text,
+            e.senderId,
+            e.senderUsername,
+            e.createdAt,
+          ),
       )
       .reverse(); // Inverse chronologique pour l'affichage
   }

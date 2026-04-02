@@ -11,19 +11,23 @@ export class GenerateAthleteUseCase {
   async execute(name: string): Promise<Athlete> {
     const probs = this.generateRandomProbs();
     const value = Athlete.calculateValue(probs);
-    
+
     const athlete = new Athlete(
       this.idGenerator.generate(),
       name,
       probs,
-      value
+      value,
     );
 
     await this.athleteRepo.save(athlete);
     return athlete;
   }
 
-  private generateRandomProbs(): { rock: number; paper: number; scissors: number } {
+  private generateRandomProbs(): {
+    rock: number;
+    paper: number;
+    scissors: number;
+  } {
     const p1 = Math.floor(Math.random() * 101);
     const p2 = Math.floor(Math.random() * (101 - p1));
     const p3 = 100 - p1 - p2;

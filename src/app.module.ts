@@ -8,7 +8,11 @@ import { RpsModule } from './contexts/rps/rps.module';
 import { ChatModule } from './contexts/chat/chat.module';
 import { UserOrmEntity } from './contexts/users/database/user.entity';
 import { ChatOrmEntity } from './contexts/chat/database/chat.entity';
-import { MatchStatsOrmEntity, UserRpsStatsOrmEntity } from './contexts/rps/database/match-stats.entity';
+import {
+  MatchStatsOrmEntity,
+  UserRpsStatsOrmEntity,
+} from './contexts/rps/database/match-stats.entity';
+import { StripeModule } from './contexts/stripe/stripe.module';
 
 @Module({
   imports: [
@@ -18,7 +22,12 @@ import { MatchStatsOrmEntity, UserRpsStatsOrmEntity } from './contexts/rps/datab
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
         url: configService.getOrThrow<string>('DATABASE_URL'),
-        entities: [UserOrmEntity, ChatOrmEntity, MatchStatsOrmEntity, UserRpsStatsOrmEntity],
+        entities: [
+          UserOrmEntity,
+          ChatOrmEntity,
+          MatchStatsOrmEntity,
+          UserRpsStatsOrmEntity,
+        ],
         synchronize: true,
       }),
       inject: [ConfigService],
@@ -26,6 +35,7 @@ import { MatchStatsOrmEntity, UserRpsStatsOrmEntity } from './contexts/rps/datab
     UsersModule,
     RpsModule,
     ChatModule,
+    StripeModule,
   ],
   controllers: [AppController],
   providers: [AppService],

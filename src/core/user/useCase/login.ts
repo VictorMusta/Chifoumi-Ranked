@@ -24,10 +24,13 @@ export class LoginUseCase {
     if (!user) {
       user = await this.userRepository.findByUsername(dto.identifier);
     }
-    
+
     if (!user) throw new Error('Invalid credentials');
 
-    const isValid = await this.passwordHasher.verify(dto.password, user.hashedPassword);
+    const isValid = await this.passwordHasher.verify(
+      dto.password,
+      user.hashedPassword,
+    );
     if (!isValid) throw new Error('Invalid credentials');
 
     // Les permissions sont embarquées dans le JWT pour être lues par PermissionsGuard

@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Param, UseGuards, Req, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Param,
+  UseGuards,
+  Req,
+  Body,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { JoinTournamentUseCase } from '../../../core/rps/useCase/join-tournament';
 import { ResolveMatchUseCase } from '../../../core/rps/useCase/resolve-match';
@@ -25,7 +33,13 @@ export class TournamentsController {
   @Post()
   @UseGuards(JwtAuthGuard)
   async createTournament(@Body('name') name: string) {
-    const tournament = new Tournament(this.idGen.generate(), name, TournamentStatus.OPEN, [], []);
+    const tournament = new Tournament(
+      this.idGen.generate(),
+      name,
+      TournamentStatus.OPEN,
+      [],
+      [],
+    );
     return this.tournamentRepo.save(tournament);
   }
 
@@ -39,7 +53,10 @@ export class TournamentsController {
 
   @Post(':id/matches/:matchId/resolve')
   @UseGuards(JwtAuthGuard)
-  async resolve(@Param('id') tournamentId: string, @Param('matchId') matchId: string) {
+  async resolve(
+    @Param('id') tournamentId: string,
+    @Param('matchId') matchId: string,
+  ) {
     return this.resolveUseCase.execute(tournamentId, matchId);
   }
 }

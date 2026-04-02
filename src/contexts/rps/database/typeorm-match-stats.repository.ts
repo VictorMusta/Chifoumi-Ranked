@@ -1,8 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { MatchStats, MatchStatsRepository } from '../../../core/rps/ports/match-stats-repository';
-import { MatchStatsOrmEntity, UserRpsStatsOrmEntity } from './match-stats.entity';
+import {
+  MatchStats,
+  MatchStatsRepository,
+} from '../../../core/rps/ports/match-stats-repository';
+import {
+  MatchStatsOrmEntity,
+  UserRpsStatsOrmEntity,
+} from './match-stats.entity';
 
 @Injectable()
 export class TypeOrmMatchStatsRepository implements MatchStatsRepository {
@@ -27,15 +33,20 @@ export class TypeOrmMatchStatsRepository implements MatchStatsRepository {
     };
   }
 
-  async updateStats(won: boolean, username: string, roundsInMatch: number): Promise<void> {
+  async updateStats(
+    won: boolean,
+    username: string,
+    roundsInMatch: number,
+  ): Promise<void> {
     const stats = await this.statsRepo.findOne({ where: { id: 'global' } });
     if (stats) {
       stats.totalRounds += roundsInMatch;
-      if (won) stats.totalMatches += 1;
+      stats.totalMatches += 1; // Increment total matches for every completed match
+
+      // Update best streak holder if applicable
+      // (This is a placeholder for more complex logic)
+
       await this.statsRepo.save(stats);
     }
-
-    // Streak logic could be more complex (we need userId), 
-    // but for now let's focus on the basics or use username if it's unique enough for this demo.
   }
 }

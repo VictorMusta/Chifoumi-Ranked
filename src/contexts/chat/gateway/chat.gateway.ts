@@ -32,7 +32,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     console.log('[ChatGateway] Client connected:', client.id);
     const messages = await this.getMessagesUseCase.execute();
     client.emit('history', messages);
-    console.log(`[ChatGateway] Sent ${messages.length} messages to ${client.id}`);
+    console.log(
+      `[ChatGateway] Sent ${messages.length} messages to ${client.id}`,
+    );
   }
 
   handleDisconnect(client: Socket) {
@@ -45,7 +47,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: any,
     @MessageBody() data: { text: string },
   ) {
-    console.log('Message received in Gateway:', data.text, 'from user:', client.user?.username);
+    console.log(
+      'Message received in Gateway:',
+      data.text,
+      'from user:',
+      client.user?.username,
+    );
     const user = client.user;
     const userId = user.id || user.sub;
     const message = await this.sendMessageUseCase.execute(

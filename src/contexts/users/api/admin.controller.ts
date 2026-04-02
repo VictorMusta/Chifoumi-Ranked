@@ -36,7 +36,8 @@ class UpdatePermissionsBody {
 class AtomicPermissionBody {
   @ApiProperty({
     example: 1,
-    description: 'La permission (bit) à ajouter/retirer/toggler (ex: 1 pour JOUEUR, 2 pour CHEF_EQUIPE)',
+    description:
+      'La permission (bit) à ajouter/retirer/toggler (ex: 1 pour JOUEUR, 2 pour CHEF_EQUIPE)',
   })
   permission: number;
 }
@@ -60,7 +61,11 @@ export class AdminController {
   /** Liste tous les utilisateurs (sans le hash du mot de passe). */
   @Get('users')
   @ApiOperation({ summary: 'Lister tous les utilisateurs (admin seulement)' })
-  @ApiResponse({ status: 200, description: 'Liste des utilisateurs', type: [UserSummary] })
+  @ApiResponse({
+    status: 200,
+    description: 'Liste des utilisateurs',
+    type: [UserSummary],
+  })
   @ApiResponse({ status: 403, description: 'Droits insuffisants' })
   async getAllUsers(): Promise<UserSummary[]> {
     const users = await this.userRepo.findAll();
@@ -75,9 +80,15 @@ export class AdminController {
 
   /** Met à jour le bitmask de permissions d'un utilisateur. */
   @Patch('users/:id/permissions')
-  @ApiOperation({ summary: 'Modifier les permissions d\'un utilisateur (admin seulement)' })
-  @ApiParam({ name: 'id', description: 'UUID de l\'utilisateur' })
-  @ApiResponse({ status: 200, description: 'Permissions mises à jour', type: UserSummary })
+  @ApiOperation({
+    summary: "Modifier les permissions d'un utilisateur (admin seulement)",
+  })
+  @ApiParam({ name: 'id', description: "UUID de l'utilisateur" })
+  @ApiResponse({
+    status: 200,
+    description: 'Permissions mises à jour',
+    type: UserSummary,
+  })
   @ApiResponse({ status: 403, description: 'Droits insuffisants' })
   @ApiResponse({ status: 404, description: 'Utilisateur introuvable' })
   async updatePermissions(
@@ -108,9 +119,13 @@ export class AdminController {
   /** Ajoute une permission à un utilisateur (OR bitwise). */
   @Post('users/:id/permissions/add')
   @ApiOperation({ summary: 'Ajouter un droit spécifique (OR bitwise)' })
-  @ApiParam({ name: 'id', description: 'UUID de l\'utilisateur' })
+  @ApiParam({ name: 'id', description: "UUID de l'utilisateur" })
   @ApiResponse({ status: 200, type: UserSummary })
-  async addPermission(@Param('id') id: string, @Body() body: AtomicPermissionBody, @Request() req: any) {
+  async addPermission(
+    @Param('id') id: string,
+    @Body() body: AtomicPermissionBody,
+    @Request() req: any,
+  ) {
     const user = await this.userRepo.findById(id);
     if (!user) throw new NotFoundException('Utilisateur introuvable');
     return this.applyAndSave(id, user.permissions | body.permission, req);
@@ -119,9 +134,13 @@ export class AdminController {
   /** Retire une permission à un utilisateur (AND NOT bitwise). */
   @Post('users/:id/permissions/remove')
   @ApiOperation({ summary: 'Retirer un droit spécifique (AND NOT bitwise)' })
-  @ApiParam({ name: 'id', description: 'UUID de l\'utilisateur' })
+  @ApiParam({ name: 'id', description: "UUID de l'utilisateur" })
   @ApiResponse({ status: 200, type: UserSummary })
-  async removePermission(@Param('id') id: string, @Body() body: AtomicPermissionBody, @Request() req: any) {
+  async removePermission(
+    @Param('id') id: string,
+    @Body() body: AtomicPermissionBody,
+    @Request() req: any,
+  ) {
     const user = await this.userRepo.findById(id);
     if (!user) throw new NotFoundException('Utilisateur introuvable');
     return this.applyAndSave(id, user.permissions & ~body.permission, req);
@@ -129,19 +148,31 @@ export class AdminController {
 
   /** Bascule une permission à un utilisateur (XOR bitwise). */
   @Post('users/:id/permissions/toggle')
-  @ApiOperation({ summary: 'Basculer (toggle) un droit spécifique (XOR bitwise)' })
-  @ApiParam({ name: 'id', description: 'UUID de l\'utilisateur' })
+  @ApiOperation({
+    summary: 'Basculer (toggle) un droit spécifique (XOR bitwise)',
+  })
+  @ApiParam({ name: 'id', description: "UUID de l'utilisateur" })
   @ApiResponse({ status: 200, type: UserSummary })
-  async togglePermission(@Param('id') id: string, @Body() body: AtomicPermissionBody, @Request() req: any) {
+  async togglePermission(
+    @Param('id') id: string,
+    @Body() body: AtomicPermissionBody,
+    @Request() req: any,
+  ) {
     const user = await this.userRepo.findById(id);
     if (!user) throw new NotFoundException('Utilisateur introuvable');
     return this.applyAndSave(id, user.permissions ^ body.permission, req);
   }
 
-  private async applyAndSave(id: string, newPermissions: number, req: any): Promise<UserSummary> {
+  private async applyAndSave(
+    id: string,
+    newPermissions: number,
+    req: any,
+  ): Promise<UserSummary> {
     // Sécurité : protection anti-auto-rétrogradation
     if (id === req.user.userId && (newPermissions & 0b11) !== 0b11) {
-      throw new ForbiddenException('Anti-auto-rétrogradation : un admin doit rester admin.');
+      throw new ForbiddenException(
+        'Anti-auto-rétrogradation : un admin doit rester admin.',
+      );
     }
 
     const value = Math.max(0, Math.min(3, Math.floor(newPermissions)));

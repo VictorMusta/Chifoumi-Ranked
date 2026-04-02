@@ -9,7 +9,11 @@ export class TournamentOrmEntity {
   @Column()
   name: string;
 
-  @Column({ type: 'enum', enum: TournamentStatus, default: TournamentStatus.OPEN })
+  @Column({
+    type: 'enum',
+    enum: TournamentStatus,
+    default: TournamentStatus.OPEN,
+  })
   status: TournamentStatus;
 
   @Column('simple-array')

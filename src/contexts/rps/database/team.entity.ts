@@ -1,4 +1,10 @@
-import { Entity, PrimaryColumn, Column, OneToMany, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryColumn,
+  Column,
+  OneToMany,
+  CreateDateColumn,
+} from 'typeorm';
 import { AthleteOrmEntity } from './athlete.entity';
 
 @Entity('teams')

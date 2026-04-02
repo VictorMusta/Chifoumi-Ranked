@@ -4,6 +4,9 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Get,
+  Req,
+  UseGuards,
   ConflictException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -17,6 +20,8 @@ import {
 import { RegisterUseCase } from '../../../core/user/useCase/register';
 import { LoginUseCase } from '../../../core/user/useCase/login';
 import { UserDto } from '../../../core/user/dto/user';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { TypeOrmUserRepository } from '../database/typeorm-user.repository';
 
 class RegisterBody {
   @ApiProperty({ example: 'victor' }) username: string;
@@ -25,7 +30,8 @@ class RegisterBody {
   @ApiProperty({
     example: 2,
     required: false,
-    description: 'Bitmask de droits : 0=aucun, 1=joueur, 2=chef_equipe, 3=admin',
+    description:
+      'Bitmask de droits : 0=aucun, 1=joueur, 2=chef_equipe, 3=admin',
   })
   permissions?: number;
 }
@@ -53,17 +59,27 @@ export class UsersController {
   constructor(
     private readonly registerUseCase: RegisterUseCase,
     private readonly loginUseCase: LoginUseCase,
+    private readonly userRepo: TypeOrmUserRepository,
   ) {}
 
   @Post('register')
   @ApiOperation({ summary: 'Créer un compte utilisateur' })
   @ApiBody({ type: RegisterBody })
-  @ApiResponse({ status: 201, description: 'Compte créé', type: RegisterResponse })
+  @ApiResponse({
+    status: 201,
+    description: 'Compte créé',
+    type: RegisterResponse,
+  })
   @ApiResponse({ status: 409, description: 'Email ou username déjà utilisé' })
   async register(@Body() body: RegisterBody) {
     try {
       const user = await this.registerUseCase.execute(
-        new UserDto(body.username, body.email, body.password, body.permissions ?? 0),
+        new UserDto(
+          body.username,
+          body.email,
+          body.password,
+          body.permissions ?? 0,
+        ),
       );
       return {
         id: user.id,
@@ -73,7 +89,8 @@ export class UsersController {
       };
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Registration failed';
-      if (message === 'User already exists') throw new ConflictException(message);
+      if (message === 'User already exists')
+        throw new ConflictException(message);
       throw e;
     }
   }
@@ -82,15 +99,76 @@ export class UsersController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Se connecter et obtenir un token JWT' })
   @ApiBody({ type: LoginBody })
-  @ApiResponse({ status: 200, description: 'Token JWT retourné', type: LoginResponse })
+  @ApiResponse({
+    status: 200,
+    description: 'Token JWT retourné',
+    type: LoginResponse,
+  })
   @ApiResponse({ status: 401, description: 'Credentials invalides' })
   async login(@Body() body: LoginBody) {
     try {
-      return await this.loginUseCase.execute({ identifier: body.identifier, password: body.password });
+      return await this.loginUseCase.execute({
+        identifier: body.identifier,
+        password: body.password,
+      });
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Login failed';
-      if (message === 'Invalid credentials') throw new UnauthorizedException(message);
+      if (message === 'Invalid credentials')
+        throw new UnauthorizedException(message);
       throw e;
     }
+  }
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  @ApiOperation({
+    summary: "Obtenir les informations de l'utilisateur connecté",
+  })
+  async getMe(@Req() req: { user: { userId: string } }) {
+    const user = await this.userRepo.findById(req.user.userId);
+    if (!user) throw new UnauthorizedException('User not found');
+    return {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      subscriptionTier: user.subscriptionTier,
+      remainingTrialMatches: user.remainingTrialMatches,
+      generatedReferralCode: user.generatedReferralCode,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('referral/generate')
+  @ApiOperation({ summary: 'Générer un code de parrainage (PRO uniquement)' })
+  async generateReferral(@Req() req: { user: { userId: string } }) {
+    const user = await this.userRepo.findById(req.user.userId);
+    if (!user) throw new Error('User not found');
+    if (user.subscriptionTier !== 2)
+      throw new Error('Must be PRO to generate a code');
+    if (user.generatedReferralCode) return { code: user.generatedReferralCode };
+
+    const code = `ROCK-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    user.generatedReferralCode = code;
+    await this.userRepo.save(user);
+    return { code };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('referral/redeem')
+  @ApiOperation({ summary: 'Utiliser un code de parrainage' })
+  async redeemReferral(
+    @Req() req: { user: { userId: string } },
+    @Body() body: { code: string },
+  ) {
+    const user = await this.userRepo.findById(req.user.userId);
+    if (!user) throw new Error('User not found');
+
+    const users = await this.userRepo.findAll();
+    const validCode = users.some((u) => u.generatedReferralCode === body.code);
+
+    if (!validCode) throw new Error('Invalid referral code');
+
+    user.subscriptionTier = 2; // Grant PRO
+    await this.userRepo.save(user);
+    return { success: true, message: 'You are now PRO! Rock on!' };
   }
 }

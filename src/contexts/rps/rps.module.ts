@@ -4,7 +4,10 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AthleteOrmEntity } from './database/athlete.entity';
 import { TeamOrmEntity } from './database/team.entity';
-import { TournamentOrmEntity, MatchOrmEntity } from './database/tournament.entity';
+import {
+  TournamentOrmEntity,
+  MatchOrmEntity,
+} from './database/tournament.entity';
 import { TypeOrmAthleteRepository } from './database/typeorm-athlete.repository';
 import { TypeOrmTeamRepository } from './database/typeorm-team.repository';
 import { TypeOrmTournamentRepository } from './database/typeorm-tournament.repository';
@@ -25,7 +28,12 @@ import { MatchStore } from './match-store.service';
 import { PlayMoveUseCase } from '../../core/rps/useCase/play-move';
 import { TypeOrmMatchStatsRepository } from './database/typeorm-match-stats.repository';
 import { WsJwtAuthGuard } from '../auth/ws-jwt.guard';
-import { MatchStatsOrmEntity, UserRpsStatsOrmEntity } from './database/match-stats.entity';
+import {
+  MatchStatsOrmEntity,
+  UserRpsStatsOrmEntity,
+} from './database/match-stats.entity';
+
+import { UsersModule } from '../users/api/users.module';
 
 @Module({
   imports: [
@@ -44,6 +52,7 @@ import { MatchStatsOrmEntity, UserRpsStatsOrmEntity } from './database/match-sta
       }),
       inject: [ConfigService],
     }),
+    UsersModule,
   ],
   providers: [
     TypeOrmAthleteRepository,
@@ -64,30 +73,52 @@ import { MatchStatsOrmEntity, UserRpsStatsOrmEntity } from './database/match-sta
     },
     {
       provide: RecruitAthleteUseCase,
-      useFactory: (athleteRepo: TypeOrmAthleteRepository, teamRepo: TypeOrmTeamRepository) =>
-        new RecruitAthleteUseCase(athleteRepo, teamRepo),
+      useFactory: (
+        athleteRepo: TypeOrmAthleteRepository,
+        teamRepo: TypeOrmTeamRepository,
+      ) => new RecruitAthleteUseCase(athleteRepo, teamRepo),
       inject: [TypeOrmAthleteRepository, TypeOrmTeamRepository],
     },
     {
       provide: JoinTournamentUseCase,
-      useFactory: (tournamentRepo: TypeOrmTournamentRepository, teamRepo: TypeOrmTeamRepository) =>
-        new JoinTournamentUseCase(tournamentRepo, teamRepo),
+      useFactory: (
+        tournamentRepo: TypeOrmTournamentRepository,
+        teamRepo: TypeOrmTeamRepository,
+      ) => new JoinTournamentUseCase(tournamentRepo, teamRepo),
       inject: [TypeOrmTournamentRepository, TypeOrmTeamRepository],
     },
     {
       provide: ResolveMatchUseCase,
-      useFactory: (tournamentRepo: TypeOrmTournamentRepository, athleteRepo: TypeOrmAthleteRepository, teamRepo: TypeOrmTeamRepository, engine: MatchEngine) =>
+      useFactory: (
+        tournamentRepo: TypeOrmTournamentRepository,
+        athleteRepo: TypeOrmAthleteRepository,
+        teamRepo: TypeOrmTeamRepository,
+        engine: MatchEngine,
+      ) =>
         new ResolveMatchUseCase(tournamentRepo, athleteRepo, teamRepo, engine),
-      inject: [TypeOrmTournamentRepository, TypeOrmAthleteRepository, TypeOrmTeamRepository, MatchEngine],
+      inject: [
+        TypeOrmTournamentRepository,
+        TypeOrmAthleteRepository,
+        TypeOrmTeamRepository,
+        MatchEngine,
+      ],
     },
     {
       provide: CreateStarterSquadUseCase,
-      useFactory: (athleteRepo: TypeOrmAthleteRepository, idGen: UuidGenerator) =>
-        new CreateStarterSquadUseCase(athleteRepo, idGen),
+      useFactory: (
+        athleteRepo: TypeOrmAthleteRepository,
+        idGen: UuidGenerator,
+      ) => new CreateStarterSquadUseCase(athleteRepo, idGen),
       inject: [TypeOrmAthleteRepository, UuidGenerator],
     },
   ],
   controllers: [AthletesController, TeamsController, TournamentsController],
-  exports: [GenerateAthleteUseCase, RecruitAthleteUseCase, JoinTournamentUseCase, ResolveMatchUseCase, CreateStarterSquadUseCase],
+  exports: [
+    GenerateAthleteUseCase,
+    RecruitAthleteUseCase,
+    JoinTournamentUseCase,
+    ResolveMatchUseCase,
+    CreateStarterSquadUseCase,
+  ],
 })
 export class RpsModule {}
