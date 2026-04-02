@@ -27,7 +27,7 @@ jobs:
             if [ -d ".git" ]; then
               git pull origin master
             else
-              git clone https://github.com/VictorMusta/core-context-archi.git .
+              git clone https://github.com/VictorMusta/Chifoumi-Ranked.git .
             fi
             
             # Create/Update .env file from secrets
