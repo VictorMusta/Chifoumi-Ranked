@@ -75,13 +75,20 @@
 
             <!-- Dashboard Mes Performances -->
             <div class="neo-card sticker-rotate-1" style="padding: 30px; background: white; border: 4px solid black;">
-                <h2 style="font-size: 2rem; margin-bottom: 25px; text-decoration: underline;">Mes Performances 📈</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="font-size: 2rem; margin-bottom: 0; text-decoration: underline;">Mes Performances 📈</h2>
+                    <div id="my-rank-badge" class="badge" style="background: var(--color-ink); color: white; padding: 10px 20px; font-size: 1.2rem;">NOVICE</div>
+                </div>
+                
                 <div class="records-list">
-                    <div class="record-row" style="background: var(--color-ink); color: white;"><span>Rang ELO</span> <strong id="my-elo">1000</strong></div>
+                    <div class="record-row" style="background: white; border: 4px solid black;">
+                        <span>Rang ELO</span>
+                        <strong id="my-elo" style="color: black;">1000</strong>
+                    </div>
                     <div class="record-row"><span>Winrate</span> <strong id="my-winrate">0%</strong></div>
                     <div class="record-row"><span>Matchs (W/L)</span> <strong id="my-w-l">0 / 0</strong></div>
                     <div class="record-row"><span>Coup Préféré</span> <strong id="my-fav-move">-</strong></div>
-                    <div class="record-row"><span>Série Actuelle</span> <strong id="my-streak">0</strong></div>
+                    <div class="record-row" style="border-bottom: none;"><span>Série Actuelle</span> <strong id="my-streak">0</strong></div>
                 </div>
             </div>
         </div>

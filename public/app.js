@@ -384,21 +384,51 @@ function initRpsGame(token) {
 
     function updateDashboardStats(user) {
         if (user.stats) {
-            document.getElementById('my-elo').textContent = user.stats.elo;
+            const elo = user.stats.elo || 1000;
+            const eloEl = document.getElementById('my-elo');
+            if (eloEl) eloEl.textContent = elo;
+            
+            const badge = document.getElementById('my-rank-badge');
+            if (badge) {
+                if (elo < 1100) {
+                    badge.textContent = 'NOVICE';
+                    badge.style.background = 'var(--color-ink)';
+                    badge.style.color = 'white';
+                } else if (elo < 1300) {
+                    badge.textContent = 'GUERRIER';
+                    badge.style.background = '#8B4513';
+                    badge.style.color = 'white';
+                } else if (elo < 1600) {
+                    badge.textContent = 'MAÎTRE';
+                    badge.style.background = 'var(--color-yellow)';
+                    badge.style.color = 'black';
+                } else {
+                    badge.textContent = 'LÉGENDE';
+                    badge.style.background = 'linear-gradient(45deg, #FF00FF, #800080)';
+                    badge.style.color = 'white';
+                }
+            }
+
             const wr = user.stats.totalMatches > 0 
                 ? ((user.stats.totalWins / user.stats.totalMatches) * 100).toFixed(1) 
                 : 0;
-            document.getElementById('my-winrate').textContent = `${wr}%`;
-            document.getElementById('my-w-l').textContent = `${user.stats.totalWins} / ${user.stats.totalLosses}`;
-            document.getElementById('my-streak').textContent = user.stats.currentStreak;
+            const wrEl = document.getElementById('my-winrate');
+            if (wrEl) wrEl.textContent = `${wr}%`;
+            
+            const wlEl = document.getElementById('my-w-l');
+            if (wlEl) wlEl.textContent = `${user.stats.totalWins} / ${user.stats.totalLosses}`;
+            
+            const streakEl = document.getElementById('my-streak');
+            if (streakEl) streakEl.textContent = user.stats.currentStreak;
 
             const moves = [
-                { name: '🪨', count: user.stats.rockCount },
-                { name: '✋', count: user.stats.paperCount },
-                { name: '✌️', count: user.stats.scissorsCount }
+                { name: '🪨', count: user.stats.rockCount || 0 },
+                { name: '✋', count: user.stats.paperCount || 0 },
+                { name: '✌️', count: user.stats.scissorsCount || 0 }
             ];
             const fav = moves.reduce((a, b) => a.count >= b.count ? a : b);
-            document.getElementById('my-fav-move').textContent = fav.count > 0 ? fav.name : '-';
+            const favEl = document.getElementById('my-fav-move');
+            if (favEl) favEl.textContent = fav.count > 0 ? fav.name : '-';
         }
     }
 
