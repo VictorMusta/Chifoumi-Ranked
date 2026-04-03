@@ -77,22 +77,19 @@
             <div class="neo-card sticker-rotate-1" style="padding: 30px; background: var(--color-yellow);">
                 <h2 style="font-size: 2rem; margin-bottom: 25px; text-decoration: underline;">Global Records 🏆</h2>
                 <div class="records-list">
-                    <div class="record-row">
-                        <span>Best Win Streak</span>
-                        <strong id="stat-best-streak">-</strong>
-                    </div>
-                    <div class="record-row">
-                        <span>Best Holder</span>
-                        <strong id="stat-best-holder">-</strong>
-                    </div>
-                    <div class="record-row">
-                        <span>Matches Won</span>
-                        <strong id="stat-total-wins">-</strong>
-                    </div>
-                    <div class="record-row" style="border-bottom: none;">
-                        <span>Rounds Played</span>
-                        <strong id="stat-total-rounds">-</strong>
-                    </div>
+                    <div class="record-row"><span>Total Rounds</span> <strong id="stat-total-rounds">0</strong></div>
+                    <div class="record-row"><span>Total Matches</span> <strong id="stat-total-matches">0</strong></div>
+                    <div class="record-row"><span>Best Streak</span> <strong id="stat-best-streak">0</strong></div>
+                    <div class="record-row"><span>Record Holder</span> <strong id="stat-streak-holder">-</strong></div>
+                </div>
+
+                <h2 style="font-size: 2rem; margin-top: 40px; margin-bottom: 25px; text-decoration: underline;">Mes Performances 📈</h2>
+                <div class="records-list">
+                    <div class="record-row" style="background: var(--color-ink); color: white;"><span>Rang ELO</span> <strong id="my-elo">1000</strong></div>
+                    <div class="record-row"><span>Winrate</span> <strong id="my-winrate">0%</strong></div>
+                    <div class="record-row"><span>Matchs (W/L)</span> <strong id="my-w-l">0 / 0</strong></div>
+                    <div class="record-row"><span>Coup Préféré</span> <strong id="my-fav-move">-</strong></div>
+                    <div class="record-row"><span>Série Actuelle</span> <strong id="my-streak">0</strong></div>
                 </div>
             </div>
         </div>
@@ -181,6 +178,7 @@
 
             <div id="match-over-view" style="display: none;">
                 <h2 id="final-result-title">MATCH FINI</h2>
+                <div id="final-elo-result" style="font-size: 2rem; font-weight: 900; margin-bottom: 30px;"></div>
                 <button class="btn btn-primary" id="close-game-btn">RETOUR AU DASHBOARD</button>
             </div>
         </div>

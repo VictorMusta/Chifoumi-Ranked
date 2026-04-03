@@ -18,6 +18,7 @@ import { JwtStrategy } from '../../auth/jwt.strategy';
 import { PermissionsGuard } from '../../auth/permissions.guard';
 
 import { SkinsModule } from '../../skins/skins.module';
+import { RpsModule } from '../../rps/rps.module';
 
 @Global()
 @Module({
@@ -26,6 +27,7 @@ import { SkinsModule } from '../../skins/skins.module';
     PassportModule,
     TypeOrmModule.forFeature([UserOrmEntity]),
     forwardRef(() => SkinsModule),
+    forwardRef(() => RpsModule),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({

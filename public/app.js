@@ -368,9 +368,38 @@ function initRpsGame(token) {
             }
             
             document.getElementById('final-result-title').textContent = isDraw ? 'ÉGALITÉ !' : (isWinner ? 'VICTOIRE ! 🎉' : 'DÉFAITE... 💀');
+            
+            const myPos = window.currentMatch?.yourPosition;
+            const eloData = data.elo;
+            const myNewElo = myPos === 1 ? eloData.p1Elo : eloData.p2Elo;
+            const myDiff = myPos === 1 ? eloData.p1Diff : eloData.p2Diff;
+            const diffText = myDiff >= 0 ? `(+${myDiff})` : `(${myDiff})`;
+            document.getElementById('final-elo-result').innerHTML = `ELO: ${myNewElo} <span style="color: ${myDiff >= 0 ? 'green' : 'red'};">${diffText}</span>`;
+            
             showView('match-over');
             window.currentMatch = null;
+            fetchUserProfile();
         });
+    }
+
+    function updateDashboardStats(user) {
+        if (user.stats) {
+            document.getElementById('my-elo').textContent = user.stats.elo;
+            const wr = user.stats.totalMatches > 0 
+                ? ((user.stats.totalWins / user.stats.totalMatches) * 100).toFixed(1) 
+                : 0;
+            document.getElementById('my-winrate').textContent = `${wr}%`;
+            document.getElementById('my-w-l').textContent = `${user.stats.totalWins} / ${user.stats.totalLosses}`;
+            document.getElementById('my-streak').textContent = user.stats.currentStreak;
+
+            const moves = [
+                { name: '🪨', count: user.stats.rockCount },
+                { name: '✋', count: user.stats.paperCount },
+                { name: '✌️', count: user.stats.scissorsCount }
+            ];
+            const fav = moves.reduce((a, b) => a.count >= b.count ? a : b);
+            document.getElementById('my-fav-move').textContent = fav.count > 0 ? fav.name : '-';
+        }
     }
 
     function updateGlobalStats(stats) {
@@ -401,7 +430,6 @@ function initRpsGame(token) {
             btn.classList.remove('selected'); 
             btn.disabled = false; 
             
-            // Paywall: Lock Rock for FREE users (tier 0) if no trials
             if (btn.dataset.move === 'rock' && userTier === 0 && !hasTrials) {
                 btn.disabled = true;
                 btn.title = "DÉBLOQUEZ LA PIERRE POUR 5€ !";
@@ -436,7 +464,6 @@ function initRpsGame(token) {
         
         const emojiMap = { rock: '✊', paper: '✋', scissors: '✌️' };
         
-        // Initial state
         handMy.textContent = '✊';
         handOpp.textContent = '✊';
         handMy.className = 'hand-emoji';

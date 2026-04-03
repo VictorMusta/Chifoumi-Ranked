@@ -17,12 +17,14 @@ import {
   ApiResponse,
   ApiProperty,
 } from '@nestjs/swagger';
+import { Inject, forwardRef } from '@nestjs/common';
 import { RegisterUseCase } from '../../../core/user/useCase/register';
 import { LoginUseCase } from '../../../core/user/useCase/login';
 import { UserDto } from '../../../core/user/dto/user';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { TypeOrmUserRepository } from '../database/typeorm-user.repository';
 import { Skin } from '../../../core/skin/entity/skin';
+import type { MatchStatsRepository } from '../../../core/rps/ports/match-stats-repository';
 
 class RegisterBody {
   @ApiProperty({ example: 'victor' }) username: string;
@@ -64,6 +66,8 @@ export class UsersController {
     private readonly loginUseCase: LoginUseCase,
     private readonly userRepo: TypeOrmUserRepository,
     private readonly skinRepo: TypeOrmSkinRepository,
+    @Inject('MatchStatsRepository')
+    private readonly statsRepo: MatchStatsRepository,
   ) {}
 
   @Post('register')
@@ -142,6 +146,8 @@ export class UsersController {
       }
     }
 
+    const stats = await this.statsRepo.getPlayerStats(req.user.userId);
+
     return {
       id: user.id,
       username: user.username,
@@ -155,6 +161,17 @@ export class UsersController {
       ),
       activeSkinId: user.activeSkinId || Skin.DEFAULT_SKIN_ID,
       activeSkinColor,
+      stats: {
+        currentStreak: stats.currentStreak,
+        totalWins: stats.totalWins,
+        totalLosses: stats.totalLosses,
+        totalDraws: stats.totalDraws,
+        totalMatches: stats.totalMatches,
+        elo: stats.elo,
+        rockCount: stats.rockCount,
+        paperCount: stats.paperCount,
+        scissorsCount: stats.scissorsCount,
+      },
     };
   }
 

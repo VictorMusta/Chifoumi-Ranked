@@ -152,6 +152,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
 
       if (result) {
+        // Track move counts for stats
+        await this.statsRepo.updatePlayerMove(match.player1Id, result.p1Move);
+        await this.statsRepo.updatePlayerMove(match.player2Id, result.p2Move);
+
         // Round is finished
         this.server.to(data.matchId).emit('roundResult', result);
 
@@ -165,13 +169,22 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
               ? match.player1Username
               : match.player2Username;
 
+          // Global stats
           await this.statsRepo.updateStats(true, winnerUsername, match.round);
+
+          // ELO and Personal Stats
+          const eloResults = await this.statsRepo.updateMatchRankings(
+            match.player1Id,
+            match.player2Id,
+            result.matchWinnerId,
+          );
 
           this.server.to(data.matchId).emit('matchOver', {
             winnerId: result.matchWinnerId,
             winnerUsername,
             p1Score: result.p1Score,
             p2Score: result.p2Score,
+            elo: eloResults,
           });
 
           // Decrement trial matches for both players if they are in trial

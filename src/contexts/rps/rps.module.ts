@@ -66,6 +66,10 @@ import { UsersModule } from '../users/api/users.module';
     TypeOrmMatchStatsRepository,
     WsJwtAuthGuard,
     {
+      provide: 'MatchStatsRepository',
+      useClass: TypeOrmMatchStatsRepository,
+    },
+    {
       provide: GenerateAthleteUseCase,
       useFactory: (repo: TypeOrmAthleteRepository, idGen: UuidGenerator) =>
         new GenerateAthleteUseCase(repo, idGen),
@@ -119,6 +123,7 @@ import { UsersModule } from '../users/api/users.module';
     JoinTournamentUseCase,
     ResolveMatchUseCase,
     CreateStarterSquadUseCase,
+    'MatchStatsRepository',
   ],
 })
 export class RpsModule {}

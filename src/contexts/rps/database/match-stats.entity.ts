@@ -27,8 +27,29 @@ export class UserRpsStatsOrmEntity {
   userId: string;
 
   @Column({ default: 0 })
-  currentStreak: number = 0;
+  currentStreak: number;
 
   @Column({ default: 0 })
-  totalWins: number = 0;
+  totalWins: number;
+
+  @Column({ default: 0 })
+  totalLosses: number = 0;
+
+  @Column({ default: 0 })
+  totalDraws: number = 0;
+
+  @Column({ default: 0 })
+  totalMatches: number = 0;
+
+  @Column({ default: 1000 })
+  elo: number = 1000;
+
+  @Column({ default: 0 })
+  rockCount: number = 0;
+
+  @Column({ default: 0 })
+  paperCount: number = 0;
+
+  @Column({ default: 0 })
+  scissorsCount: number = 0;
 }
