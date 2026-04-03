@@ -341,14 +341,17 @@ function initRpsGame(token) {
             document.getElementById('opponent-name').textContent = data.yourPosition === 1 ? data.opponent2 : data.opponent1;
             document.getElementById('my-score').textContent = '0';
             document.getElementById('opp-score').textContent = '0';
+            document.getElementById('battle-arena').style.display = 'none';
+            document.querySelector('.choices-grid').style.display = 'grid';
             showView('game');
             startRoundCountdown();
         });
 
-        gameSocket.on('roundResult', (result) => {
+        gameSocket.on('roundResult', async (result) => {
             console.log('[RPS] Round Result:', result);
+            await animateRoundReveal(result);
             displayRoundResult(result);
-            setTimeout(() => { if (!result.isMatchOver) startRoundCountdown(); }, 3000);
+            setTimeout(() => { if (!result.isMatchOver) startRoundCountdown(); }, 2000);
         });
 
         gameSocket.on('matchOver', (data) => {
@@ -385,8 +388,11 @@ function initRpsGame(token) {
     }
 
     function startRoundCountdown() {
-        let timeLeft = 2.0;
+        let timeLeft = 7.0;
         selectedMove = null;
+        
+        document.getElementById('battle-arena').style.display = 'none';
+        document.querySelector('.choices-grid').style.display = 'grid';
         
         const userTier = window.currentUser?.subscriptionTier || 0;
         const hasTrials = (window.currentUser?.remainingTrialMatches || 0) > 0;
@@ -404,6 +410,8 @@ function initRpsGame(token) {
         });
         
         roundMsgEl.textContent = 'Choisissez votre coup !';
+        roundMsgEl.style.background = '#f0f0f0';
+        roundMsgEl.style.color = 'black';
         countdownEl.textContent = timeLeft.toFixed(1);
         if (countdownInterval) clearInterval(countdownInterval);
         countdownInterval = setInterval(() => {
@@ -411,6 +419,62 @@ function initRpsGame(token) {
             if (timeLeft <= 0) { timeLeft = 0; clearInterval(countdownInterval); finishSelection(); }
             countdownEl.textContent = timeLeft.toFixed(1);
         }, 100);
+    }
+
+    async function animateRoundReveal(result) {
+        if (countdownInterval) clearInterval(countdownInterval);
+        countdownEl.textContent = "!!!";
+        
+        const choiceGrid = document.querySelector('.choices-grid');
+        const battleArena = document.getElementById('battle-arena');
+        const handMy = document.getElementById('hand-my');
+        const handOpp = document.getElementById('hand-opp');
+
+        choiceGrid.style.display = 'none';
+        battleArena.style.display = 'flex';
+        roundMsgEl.textContent = 'PIERRE...';
+        
+        const emojiMap = { rock: '✊', paper: '✋', scissors: '✌️' };
+        
+        // Initial state
+        handMy.textContent = '✊';
+        handOpp.textContent = '✊';
+        handMy.className = 'hand-emoji';
+        handOpp.className = 'hand-emoji';
+
+        const shake = (text) => new Promise(res => {
+            roundMsgEl.textContent = text;
+            handMy.classList.add('neo-hand-shake');
+            handOpp.classList.add('neo-hand-shake');
+            setTimeout(() => {
+                handMy.classList.remove('neo-hand-shake');
+                handOpp.classList.remove('neo-hand-shake');
+                res();
+            }, 500);
+        });
+
+        await shake('PIERRE...');
+        await shake('PAPIER...');
+        await shake('CISEAUX...');
+        
+        // REVEAL
+        roundMsgEl.textContent = 'REVELATION !';
+        const myPos = window.currentMatch?.yourPosition;
+        const myMove = myPos === 1 ? result.p1Move : result.p2Move;
+        const oppMove = myPos === 1 ? result.p2Move : result.p1Move;
+
+        handMy.textContent = emojiMap[myMove] || '❓';
+        handOpp.textContent = emojiMap[oppMove] || '❓';
+
+        // Winner Pop
+        const myId = String(localStorage.getItem('userId'));
+        if (result.winnerId === myId) {
+            handMy.classList.add('hand-winner');
+        } else if (result.winnerId && result.winnerId !== 'draw') {
+            handOpp.classList.add('hand-winner');
+        }
+
+        return new Promise(res => setTimeout(res, 1000));
     }
 
     function finishSelection() {
