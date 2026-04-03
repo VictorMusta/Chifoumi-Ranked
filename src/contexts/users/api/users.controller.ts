@@ -22,6 +22,7 @@ import { LoginUseCase } from '../../../core/user/useCase/login';
 import { UserDto } from '../../../core/user/dto/user';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { TypeOrmUserRepository } from '../database/typeorm-user.repository';
+import { Skin } from '../../../core/skin/entity/skin';
 
 class RegisterBody {
   @ApiProperty({ example: 'victor' }) username: string;
@@ -53,6 +54,8 @@ class LoginResponse {
   accessToken: string;
 }
 
+import { TypeOrmSkinRepository } from '../../skins/database/typeorm-skin.repository';
+
 @ApiTags('Auth')
 @Controller('auth')
 export class UsersController {
@@ -60,6 +63,7 @@ export class UsersController {
     private readonly registerUseCase: RegisterUseCase,
     private readonly loginUseCase: LoginUseCase,
     private readonly userRepo: TypeOrmUserRepository,
+    private readonly skinRepo: TypeOrmSkinRepository,
   ) {}
 
   @Post('register')
@@ -126,6 +130,18 @@ export class UsersController {
   async getMe(@Req() req: { user: { userId: string } }) {
     const user = await this.userRepo.findById(req.user.userId);
     if (!user) throw new UnauthorizedException('User not found');
+
+    let activeSkinColor: string | null = null;
+    const effectiveSkinId = user.activeSkinId || Skin.DEFAULT_SKIN_ID;
+    if (effectiveSkinId === Skin.DEFAULT_SKIN_ID) {
+      activeSkinColor = Skin.getDefault().color;
+    } else {
+      const skin = await this.skinRepo.findById(effectiveSkinId);
+      if (skin) {
+        activeSkinColor = skin.color;
+      }
+    }
+
     return {
       id: user.id,
       username: user.username,
@@ -133,6 +149,12 @@ export class UsersController {
       subscriptionTier: user.subscriptionTier,
       remainingTrialMatches: user.remainingTrialMatches,
       generatedReferralCode: user.generatedReferralCode,
+      permissions: user.permissions,
+      ownedSkinIds: Array.from(
+        new Set([Skin.DEFAULT_SKIN_ID, ...(user.ownedSkinIds || [])]),
+      ),
+      activeSkinId: user.activeSkinId || Skin.DEFAULT_SKIN_ID,
+      activeSkinColor,
     };
   }
 

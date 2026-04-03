@@ -108,10 +108,20 @@ async function fetchUserProfile() {
         if (res.ok) {
             window.currentUser = data;
             updateSubscriptionUI(data);
+            applySkin(data);
             return data;
         }
     } catch (err) {
         console.error('Failed to fetch user profile', err);
+    }
+}
+
+function applySkin(user) {
+    if (user.activeSkinColor) {
+        document.body.style.backgroundColor = user.activeSkinColor;
+        // Optionally update other elements if needed
+    } else {
+        document.body.style.backgroundColor = ''; // Reset to default
     }
 }
 
@@ -121,6 +131,7 @@ function updateSubscriptionUI(user) {
     const trialsCountEl = document.getElementById('remaining-trials');
     const upgradeBtn = document.getElementById('upgrade-pro-btn');
     const referralCodeInput = document.getElementById('my-referral-code');
+    const adminLinkContainer = document.getElementById('admin-link-container');
 
     const tiers = ['GRATUIT (Limitée)', 'BASIQUE (2x Pierre)', 'PREMIUM PRO 👑'];
     statusEl.textContent = tiers[user.subscriptionTier] || 'Inconnu';
@@ -139,7 +150,95 @@ function updateSubscriptionUI(user) {
     } else {
         upgradeBtn.classList.remove('hidden');
     }
+
+    // Show admin link if permissions >= 3
+    if (user.permissions >= 3) {
+        adminLinkContainer.classList.remove('hidden');
+    } else {
+        adminLinkContainer.classList.add('hidden');
+    }
+
+    loadSkins(user);
 }
+
+async function loadSkins(user) {
+    const skinList = document.getElementById('skin-list');
+    if (!skinList) return;
+
+    try {
+        const res = await fetch('/skins');
+        const skins = await res.json();
+        
+        skinList.innerHTML = skins.map(skin => {
+            const isOwned = user.ownedSkinIds?.includes(skin.id);
+            const isActive = user.activeSkinId === skin.id;
+            
+            return `
+                <div class="neo-card" style="padding: 20px; background: #f8fafc; border-bottom: 8px solid ${skin.color};">
+                    <h3 style="margin-bottom: 5px;">${skin.name}</h3>
+                    <p style="font-weight: 900; margin-bottom: 15px;">${(skin.price / 100).toFixed(2)}€</p>
+                    <div style="width: 100%; height: 10px; background: ${skin.color}; border-radius: 5px; margin-bottom: 15px;"></div>
+                    
+                    ${isOwned ? `
+                        <button class="neo-btn ${isActive ? 'neo-btn-secondary' : 'neo-btn-primary'}" 
+                                onclick="applySkinAction('${skin.id}')" 
+                                style="width: 100%; font-size: 0.9rem;">
+                            ${isActive ? 'ACTIF ✅' : 'APPLIQUER'}
+                        </button>
+                    ` : `
+                        <button class="neo-btn neo-btn-primary" 
+                                onclick="buySkinAction('${skin.id}')" 
+                                style="width: 100%; font-size: 0.9rem;">
+                            ACHETER 🛒
+                        </button>
+                    `}
+                </div>
+            `;
+        }).join('') || '<p>Aucun skin disponible pour le moment.</p>';
+    } catch (err) {
+        console.error('Failed to load skins', err);
+        skinList.innerHTML = '<p>Erreur lors du chargement des skins.</p>';
+    }
+}
+
+window.buySkinAction = async (skinId) => {
+    const token = localStorage.getItem('token');
+    if (!token) return alert("Veuillez vous connecter pour acheter ce skin.");
+
+    try {
+        const res = await fetch(`/skins/${skinId}/buy`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.url) {
+            window.location.href = data.url;
+        } else {
+            alert(data.message || "Erreur lors de l'initialisation du paiement.");
+        }
+    } catch (err) {
+        console.error('Skin Purchase Error:', err);
+        alert("Une erreur est survenue lors de la communication avec Stripe.");
+    }
+};
+
+window.applySkinAction = async (skinId) => {
+    const token = localStorage.getItem('token');
+    try {
+        const res = await fetch(`/skins/${skinId}/apply`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+            window.location.reload();
+        } else {
+            const data = await res.json();
+            alert(data.message || "Erreur lors de l'application");
+        }
+    } catch (err) {
+        console.error(err);
+    }
+};
 
 async function checkAuth() {
     const token = localStorage.getItem('token');
@@ -228,14 +327,16 @@ function initRpsGame(token) {
     if (!playRpsBtn) return;
 
     function initSocket() {
-        if (gameSocket) return;
-        gameSocket = io('/game', { auth: { token: token } });
+        if (gameSocket && gameSocket.connected) return;
+        if (gameSocket) gameSocket.disconnect();
+        gameSocket = io('/game', { auth: { token: token }, forceNew: true });
         
         gameSocket.on('stats', updateGlobalStats);
         gameSocket.on('globalStatsUpdate', updateGlobalStats);
         
         gameSocket.on('matchFound', (data) => {
             console.log('[RPS] Match Found:', data);
+            currentMatchId = data.matchId;
             window.currentMatch = data;
             document.getElementById('opponent-name').textContent = data.yourPosition === 1 ? data.opponent2 : data.opponent1;
             document.getElementById('my-score').textContent = '0';
@@ -252,14 +353,18 @@ function initRpsGame(token) {
 
         gameSocket.on('matchOver', (data) => {
             console.log('[RPS] Match Over:', data);
-            const myPos = window.currentMatch?.yourPosition;
-            const win = (myPos === 1 && data.p1Score > data.p2Score) || (myPos === 2 && data.p2Score > data.p1Score);
-            const draw = data.p1Score === data.p2Score;
             
-            // Adjust if winnerId was sent explicitly (forfeits etc)
-            const finalWin = data.winnerId ? String(data.winnerId) === String(localStorage.getItem('userId')) : win;
+            const myId = String(localStorage.getItem('userId'));
+            const isWinner = data.winnerId === myId;
+            const isDraw = !data.winnerId;
+
+            if (data.p1Score !== undefined && data.p2Score !== undefined) {
+                const myPos = window.currentMatch?.yourPosition;
+                document.getElementById('my-score').textContent = myPos === 1 ? data.p1Score : data.p2Score;
+                document.getElementById('opp-score').textContent = myPos === 1 ? data.p2Score : data.p1Score;
+            }
             
-            document.getElementById('final-result-title').textContent = draw ? 'ÉGALITÉ !' : (finalWin ? 'VICTOIRE ! 🎉' : 'DÉFAITE... 💀');
+            document.getElementById('final-result-title').textContent = isDraw ? 'ÉGALITÉ !' : (isWinner ? 'VICTOIRE ! 🎉' : 'DÉFAITE... 💀');
             showView('match-over');
             window.currentMatch = null;
         });
@@ -346,7 +451,12 @@ function initRpsGame(token) {
     playRpsBtn.addEventListener('click', () => {
         initSocket();
         showView('matchmaking');
-        gameSocket.emit('joinQueue');
+        // Wait for connection before emitting
+        if (gameSocket.connected) {
+            gameSocket.emit('joinQueue');
+        } else {
+            gameSocket.once('connect', () => gameSocket.emit('joinQueue'));
+        }
     });
 
     choiceButtons.forEach(btn => {
@@ -366,9 +476,15 @@ function initRpsGame(token) {
         gameModal.style.display = 'none';
     };
 
-    // Initial stats fetch
-    initSocket();
-    gameSocket.emit('getStats');
+    // Initial stats fetch — use a separate short-lived request
+    const statsSocket = io('/game', { auth: { token: token } });
+    statsSocket.on('connect', () => {
+        statsSocket.emit('getStats');
+    });
+    statsSocket.on('stats', (data) => {
+        updateGlobalStats(data);
+        statsSocket.disconnect();
+    });
 }
 
 function injectChat(token) {

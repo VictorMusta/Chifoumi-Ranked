@@ -39,13 +39,23 @@ export class StripeController {
     }
 
     if (event.type === 'checkout.session.completed') {
-      const session = event.data.object;
-      const userId = session.metadata.userId;
-      const tier = session.metadata.tier === 'pro' ? 2 : 1;
+      const session = event.data.object as any;
+      const { userId, tier, skinId } = session.metadata as {
+        userId: string;
+        tier: string;
+        skinId?: string;
+      };
 
       const user = await this.userRepo.findById(userId);
       if (user) {
-        user.subscriptionTier = tier;
+        if (tier === 'skin' && skinId) {
+          if (!user.ownedSkinIds.includes(skinId)) {
+            user.ownedSkinIds.push(skinId);
+          }
+        } else if (tier) {
+          user.subscriptionTier =
+            tier === 'pro' ? 2 : tier === 'basic' ? 1 : user.subscriptionTier;
+        }
         await this.userRepo.save(user);
       }
     }

@@ -22,6 +22,8 @@ export class TypeOrmUserRepository implements UserRepository {
       subscriptionTier: user.subscriptionTier,
       remainingTrialMatches: user.remainingTrialMatches,
       generatedReferralCode: user.generatedReferralCode,
+      ownedSkinIds: user.ownedSkinIds,
+      activeSkinId: user.activeSkinId,
     });
     await this.repo.save(orm);
     return user;
@@ -65,6 +67,8 @@ export class TypeOrmUserRepository implements UserRepository {
       orm.subscriptionTier,
       orm.remainingTrialMatches,
       orm.generatedReferralCode,
+      orm.ownedSkinIds,
+      orm.activeSkinId,
     );
   }
 }

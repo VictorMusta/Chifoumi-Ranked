@@ -1,4 +1,4 @@
-import { Module, Global } from '@nestjs/common';
+import { Module, Global, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
@@ -17,12 +17,15 @@ import { AdminController } from './admin.controller';
 import { JwtStrategy } from '../../auth/jwt.strategy';
 import { PermissionsGuard } from '../../auth/permissions.guard';
 
+import { SkinsModule } from '../../skins/skins.module';
+
 @Global()
 @Module({
   imports: [
     ConfigModule,
     PassportModule,
     TypeOrmModule.forFeature([UserOrmEntity]),
+    forwardRef(() => SkinsModule),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({

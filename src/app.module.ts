@@ -14,6 +14,8 @@ import {
 } from './contexts/rps/database/match-stats.entity';
 import { StripeModule } from './contexts/stripe/stripe.module';
 
+import { SkinsModule } from './contexts/skins/skins.module';
+import { SkinOrmEntity } from './contexts/skins/database/skin.entity';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -27,6 +29,7 @@ import { StripeModule } from './contexts/stripe/stripe.module';
           ChatOrmEntity,
           MatchStatsOrmEntity,
           UserRpsStatsOrmEntity,
+          SkinOrmEntity,
         ],
         synchronize: true,
       }),
@@ -36,6 +39,7 @@ import { StripeModule } from './contexts/stripe/stripe.module';
     RpsModule,
     ChatModule,
     StripeModule,
+    SkinsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

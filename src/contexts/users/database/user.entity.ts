@@ -32,6 +32,12 @@ export class UserOrmEntity {
   @Column({ type: 'varchar', nullable: true, unique: true })
   generatedReferralCode: string | null;
 
+  @Column({ type: 'simple-array', default: '' })
+  ownedSkinIds: string[];
+
+  @Column({ type: 'varchar', nullable: true })
+  activeSkinId: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

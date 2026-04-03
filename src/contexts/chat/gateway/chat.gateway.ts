@@ -66,12 +66,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.emit('message', message);
   }
 
+  @UseGuards(WsJwtAuthGuard)
   @SubscribeMessage('typing')
   handleTyping(
     @ConnectedSocket() client: any,
     @MessageBody() data: { text: string },
   ) {
-    const user = client.user || { id: 'guest', username: 'Guest' };
+    const user = client.user;
+    if (!user) return;
+
     const userId = user.id || user.sub || 'guest';
     client.broadcast.emit('userTyping', {
       senderId: userId,

@@ -31,9 +31,15 @@ jobs:
             fi
             
             # Create/Update .env file from secrets
-            echo "DATABASE_URL=postgres://postgres:postgres@db:5432/renfo" > .env
+            echo "PORT=6969" > .env
+            echo "DATABASE_URL=postgres://postgres:postgres@db:5432/renfo" >> .env
             echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
             echo "JWT_EXPIRES_IN=${{ secrets.JWT_EXPIRES_IN }}" >> .env
+            echo "STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}" >> .env
+            echo "STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}" >> .env
+            echo "STRIPE_PRO_PRICE_ID=${{ secrets.STRIPE_PRO_PRICE_ID }}" >> .env
+            echo "STRIPE_BASIC_PRICE_ID=${{ secrets.STRIPE_BASIC_PRICE_ID }}" >> .env
+            echo "APP_URL=${{ secrets.APP_URL }}" >> .env
             
             # Restart containers
             docker compose up -d --build

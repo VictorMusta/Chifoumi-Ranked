@@ -41,18 +41,23 @@ export class StripeService {
 
   async createCheckoutSession(
     userId: string,
-    tier: 'basic' | 'pro',
+    tier: 'basic' | 'pro' | 'skin',
     email: string,
+    priceIdOverride?: string,
+    skinId?: string,
   ) {
-    let priceId = this.configService.get<string>('STRIPE_PRO_PRICE_ID');
-    console.log('Current STRIPE_PRO_PRICE_ID from config:', priceId);
+    let priceId =
+      priceIdOverride || this.configService.get<string>('STRIPE_PRO_PRICE_ID');
+    console.log('Current priceId for checkout:', priceId);
 
-    // If not configured properly (missing or not a price_ ID), auto-create one
-    if (!priceId || !priceId.startsWith('price_')) {
-      console.log('Invalid or missing Price ID, ensuring new one...');
+    // If not configured properly (missing or not a price_ ID), and not a skin purchase, auto-create pro price
+    if (tier !== 'skin' && (!priceId || !priceId.startsWith('price_'))) {
+      console.log('Invalid or missing Price ID for Pro, ensuring new one...');
       priceId = await this.ensureProductAndPrice();
       console.log('Ensured Price ID:', priceId);
     }
+
+    if (!priceId) throw new Error('No Price ID provided for Checkout');
 
     // Fetch the price to determine the correct mode automatically
     const price = await this.stripe.prices.retrieve(priceId);
@@ -76,10 +81,41 @@ export class StripeService {
         success_url: `${this.configService.get('APP_URL', 'http://localhost:6969')}/success.html?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${this.configService.get('APP_URL', 'http://localhost:6969')}/cancel.html`,
         client_reference_id: userId,
-        metadata: { userId, tier },
+        metadata: { userId, tier, skinId: skinId || '' },
       });
     } catch (error) {
       console.error('Stripe Checkout Error:', error);
+      throw error;
+    }
+  }
+
+  async createProductAndPrice(
+    name: string,
+    priceInCents: number,
+    color: string,
+  ) {
+    try {
+      const product = await this.stripe.products.create({
+        name: `Skin: ${name}`,
+        description: `Un skin exclusif de couleur ${color}`,
+        metadata: {
+          type: 'skin',
+          color,
+        },
+      });
+
+      const price = await this.stripe.prices.create({
+        product: product.id,
+        unit_amount: priceInCents,
+        currency: 'eur',
+      });
+
+      return {
+        productId: product.id,
+        priceId: price.id,
+      };
+    } catch (error) {
+      console.error('Stripe Product Creation Error:', error);
       throw error;
     }
   }

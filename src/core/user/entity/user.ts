@@ -8,5 +8,7 @@ export class User {
     public subscriptionTier: number = 0,
     public remainingTrialMatches: number = 5,
     public generatedReferralCode: string | null = null,
+    public ownedSkinIds: string[] = [],
+    public activeSkinId: string | null = null,
   ) {}
 }

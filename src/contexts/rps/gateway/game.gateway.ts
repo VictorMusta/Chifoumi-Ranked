@@ -9,6 +9,14 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { UseGuards } from '@nestjs/common';
+
+interface AuthenticatedSocket extends Socket {
+  user?: {
+    id?: string;
+    sub?: string;
+    username: string;
+  };
+}
 import { WsJwtAuthGuard } from '../../auth/ws-jwt.guard';
 import { MatchStore } from '../match-store.service';
 import { PvPMatch, Move } from '../../../core/rps/entity/pvp-match';
@@ -31,6 +39,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   handleConnection(client: Socket) {}
 
   handleDisconnect(client: Socket) {
+    console.log(`[GameGateway] Socket disconnected: ${client.id}`);
     this.matchStore.removeFromQueue(client.id);
 
     // Check if player was in a match
@@ -50,17 +59,20 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @UseGuards(WsJwtAuthGuard)
   @SubscribeMessage('joinQueue')
-  handleJoinQueue(@ConnectedSocket() client: Socket) {
-    const user = (client as any).user;
+  handleJoinQueue(@ConnectedSocket() client: AuthenticatedSocket) {
+    const user = client.user;
     if (!user) {
       console.warn(`[GameGateway] No user found on client ${client.id}`);
       return;
     }
 
+    const userId = user.id || user.sub || '';
+    const username = user.username || 'Anonymous';
+
     const pairing = this.matchStore.addToQueue(
       client.id,
-      user.id || user.sub,
-      user.username,
+      userId,
+      username,
     );
 
     if (pairing) {
@@ -107,20 +119,24 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @UseGuards(WsJwtAuthGuard)
   @SubscribeMessage('playMove')
   async handlePlayMove(
-    @ConnectedSocket() client: Socket,
+    @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() data: { matchId: string; move: Move },
   ) {
-    const user = (client as any).user;
+    const user = client.user;
+    const userId = user?.id || user?.sub;
+    if (!userId) {
+      console.warn(`[GameGateway] No user ID found on client ${client.id}`);
+      return;
+    }
+
     const match = this.matchStore.getMatch(data.matchId);
 
     if (!match || match.isOver) return;
 
     // Fetch full user daily to check tier/trial
-    const fullUser = await this.userRepo.findById(user.id || user.sub);
+    const fullUser = await this.userRepo.findById(userId);
     if (!fullUser) {
-      console.warn(
-        `[GameGateway] Full user not found for ID ${user.id || user.sub}`,
-      );
+      console.warn(`[GameGateway] Full user not found for ID ${userId}`);
       return;
     }
     // Use socket info to determine position (handles Victor vs Victor)
@@ -154,6 +170,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
           this.server.to(data.matchId).emit('matchOver', {
             winnerId: result.matchWinnerId,
             winnerUsername,
+            p1Score: result.p1Score,
+            p2Score: result.p2Score,
           });
 
           // Decrement trial matches for both players if they are in trial
@@ -185,7 +203,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @UseGuards(WsJwtAuthGuard)
   @SubscribeMessage('getStats')
-  async handleGetStats(@ConnectedSocket() client: Socket) {
+  async handleGetStats(@ConnectedSocket() client: AuthenticatedSocket) {
     const stats = await this.statsRepo.getStats();
     client.emit('stats', stats);
   }

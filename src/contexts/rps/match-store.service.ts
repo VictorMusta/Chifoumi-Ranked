@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PvPMatch } from '../../core/rps/entity/pvp-match';
 
+export interface PlayerQueueInfo {
+  socketId: string;
+  userId: string;
+  username: string;
+}
+
 @Injectable()
 export class MatchStore {
   private matches = new Map<string, PvPMatch>();
@@ -8,13 +14,13 @@ export class MatchStore {
     string,
     { matchId: string; playerPosition: 1 | 2 }
   >();
-  private queue: { socketId: string; userId: string; username: string }[] = [];
+  private queue: PlayerQueueInfo[] = [];
 
   public addToQueue(
     socketId: string,
     userId: string,
     username: string,
-  ): { player1: any; player2: any } | null {
+  ): { player1: PlayerQueueInfo; player2: PlayerQueueInfo } | null {
     // Eviter de s'ajouter soi-même
     if (this.queue.find((q) => q.userId === userId)) {
       console.log(
@@ -39,6 +45,12 @@ export class MatchStore {
   }
 
   public removeFromQueue(socketId: string): void {
+    const found = this.queue.find((q) => q.socketId === socketId);
+    if (found) {
+      console.log(
+        `[MatchStore] Removing ${found.username} (socket: ${socketId}) from queue. Queue size before: ${this.queue.length}`,
+      );
+    }
     this.queue = this.queue.filter((q) => q.socketId !== socketId);
   }
 
