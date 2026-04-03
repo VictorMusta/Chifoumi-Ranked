@@ -44,11 +44,15 @@ export class TypeOrmMatchStatsRepository implements MatchStatsRepository {
   }
 
   async updatePlayerMove(userId: string, move: string): Promise<void> {
-    const stats = (await this.getPlayerStats(userId)) as UserRpsStatsOrmEntity;
-    if (move === 'rock') stats.rockCount++;
-    if (move === 'paper') stats.paperCount++;
-    if (move === 'scissors') stats.scissorsCount++;
-    await this.userStatsRepo.save(stats);
+    const fieldMap: Record<string, string> = {
+      rock: 'rockCount',
+      paper: 'paperCount',
+      scissors: 'scissorsCount',
+    };
+    const field = fieldMap[move];
+    if (field) {
+      await this.userStatsRepo.increment({ userId }, field, 1);
+    }
   }
 
   async updateStats(
@@ -56,12 +60,8 @@ export class TypeOrmMatchStatsRepository implements MatchStatsRepository {
     username: string,
     roundsInMatch: number,
   ): Promise<void> {
-    const stats = await this.statsRepo.findOne({ where: { id: 'global' } });
-    if (stats) {
-      stats.totalRounds += roundsInMatch;
-      stats.totalMatches += 1;
-      await this.statsRepo.save(stats);
-    }
+    await this.statsRepo.increment({ id: 'global' }, 'totalRounds', roundsInMatch);
+    await this.statsRepo.increment({ id: 'global' }, 'totalMatches', 1);
   }
 
   async updateMatchRankings(

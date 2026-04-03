@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryColumn } from 'typeorm';
+import { Entity, Column, PrimaryColumn, VersionColumn } from 'typeorm';
 
 @Entity('match_stats')
 export class MatchStatsOrmEntity {
@@ -17,8 +17,8 @@ export class MatchStatsOrmEntity {
   @Column({ nullable: true })
   bestStreakHolder: string = '';
 
-  // Helper to keep track of current streaks in-memory or in another table
-  // For simplicity here, we assume the record holder is updated if their current streak beats the record.
+  @VersionColumn()
+  version: number;
 }
 
 @Entity('user_rps_stats')
@@ -52,4 +52,7 @@ export class UserRpsStatsOrmEntity {
 
   @Column({ default: 0 })
   scissorsCount: number = 0;
+
+  @VersionColumn()
+  version: number;
 }
