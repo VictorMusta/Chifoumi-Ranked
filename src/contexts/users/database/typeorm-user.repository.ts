@@ -57,6 +57,10 @@ export class TypeOrmUserRepository implements UserRepository {
     return this.findById(id);
   }
 
+  async decrementTrialMatches(id: string): Promise<void> {
+    await this.repo.decrement({ id }, 'remainingTrialMatches', 1);
+  }
+
   private toDomain(orm: UserOrmEntity): User {
     return new User(
       orm.id,

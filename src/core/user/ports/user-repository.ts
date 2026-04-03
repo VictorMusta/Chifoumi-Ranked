@@ -7,4 +7,5 @@ export interface UserRepository {
   findById(id: string): Promise<User | null>;
   findAll(): Promise<User[]>;
   updatePermissions(id: string, permissions: number): Promise<User | null>;
+  decrementTrialMatches(id: string): Promise<void>;
 }

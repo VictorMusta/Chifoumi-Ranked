@@ -187,21 +187,16 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
             elo: eloResults,
           });
 
-          // Decrement trial matches for both players if they are in trial
+          // Handle player 1 trial decrement
           const p1 = await this.userRepo.findById(match.player1Id);
-          const p2 = await this.userRepo.findById(match.player2Id);
-
           if (p1 && p1.remainingTrialMatches > 0) {
-            await this.userRepo.save({
-              ...p1,
-              remainingTrialMatches: p1.remainingTrialMatches - 1,
-            });
+            await this.userRepo.decrementTrialMatches(match.player1Id);
           }
+
+          // Handle player 2 trial decrement
+          const p2 = await this.userRepo.findById(match.player2Id);
           if (p2 && p2.remainingTrialMatches > 0) {
-            await this.userRepo.save({
-              ...p2,
-              remainingTrialMatches: p2.remainingTrialMatches - 1,
-            });
+            await this.userRepo.decrementTrialMatches(match.player2Id);
           }
 
           this.matchStore.removeMatch(data.matchId);

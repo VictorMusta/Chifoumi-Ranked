@@ -4,6 +4,7 @@ import {
   Entity,
   PrimaryColumn,
   UpdateDateColumn,
+  VersionColumn,
 } from 'typeorm';
 
 @Entity('users')
@@ -22,6 +23,9 @@ export class UserOrmEntity {
 
   @Column({ type: 'int', default: 0 })
   permissions: number;
+
+  @VersionColumn()
+  version: number;
 
   @Column({ type: 'int', default: 0 })
   subscriptionTier: number; // 0: FREE, 1: BASIC, 2: PRO
