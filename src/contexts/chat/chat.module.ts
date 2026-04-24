@@ -1,7 +1,5 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { JwtModule } from '@nestjs/jwt';
-import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { ChatOrmEntity } from './database/chat.entity';
 import { TypeOrmChatRepository } from './database/typeorm-chat.repository';
@@ -12,16 +10,7 @@ import { UuidGenerator } from '../users/adapter/uuidGenerator';
 import { WsJwtAuthGuard } from '../auth/ws-jwt.guard';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([ChatOrmEntity]),
-    JwtModule.registerAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.getOrThrow<string>('JWT_SECRET'),
-      }),
-      inject: [ConfigService],
-    }),
-  ],
+  imports: [TypeOrmModule.forFeature([ChatOrmEntity])],
   providers: [
     TypeOrmChatRepository,
     UuidGenerator,

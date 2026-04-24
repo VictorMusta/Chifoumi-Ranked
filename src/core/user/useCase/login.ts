@@ -5,6 +5,7 @@ import { TokenGenerator } from '../ports/token-generator';
 export interface LoginDto {
   identifier: string; // Peut être un email ou un username
   password: string;
+  fingerprint?: string;
 }
 
 export interface LoginResult {
@@ -40,6 +41,7 @@ export class LoginUseCase {
       username: user.username,
       email: user.email,
       permissions: user.permissions,
+      fpt: dto.fingerprint,
     });
 
     return { accessToken };

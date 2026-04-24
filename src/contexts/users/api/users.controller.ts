@@ -25,6 +25,7 @@ import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { TypeOrmUserRepository } from '../database/typeorm-user.repository';
 import { Skin } from '../../../core/skin/entity/skin';
 import type { MatchStatsRepository } from '../../../core/rps/ports/match-stats-repository';
+import { CustomJwtService } from '../../auth/infrastructure/custom-jwt.service';
 
 class RegisterBody {
   @ApiProperty({ example: 'victor' }) username: string;
@@ -66,6 +67,7 @@ export class UsersController {
     private readonly loginUseCase: LoginUseCase,
     private readonly userRepo: TypeOrmUserRepository,
     private readonly skinRepo: TypeOrmSkinRepository,
+    private readonly jwtService: CustomJwtService,
     @Inject('MatchStatsRepository')
     private readonly statsRepo: MatchStatsRepository,
   ) {}
@@ -113,11 +115,13 @@ export class UsersController {
     type: LoginResponse,
   })
   @ApiResponse({ status: 401, description: 'Credentials invalides' })
-  async login(@Body() body: LoginBody) {
+  async login(@Req() req: any, @Body() body: LoginBody) {
     try {
+      const fingerprint = this.jwtService.generateDeviceFingerprint(req);
       return await this.loginUseCase.execute({
         identifier: body.identifier,
         password: body.password,
+        fingerprint,
       });
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Login failed';

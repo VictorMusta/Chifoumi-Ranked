@@ -1,8 +1,6 @@
 import { Module, Global, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { JwtModule } from '@nestjs/jwt';
-import { PassportModule } from '@nestjs/passport';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 
 import { UserOrmEntity } from '../database/user.entity';
 import { TypeOrmUserRepository } from '../database/typeorm-user.repository';
@@ -14,8 +12,9 @@ import { LoginUseCase } from '../../../core/user/useCase/login';
 import { UsersController } from './users.controller';
 import { RoutesController } from './routes.controller';
 import { AdminController } from './admin.controller';
-import { JwtStrategy } from '../../auth/jwt.strategy';
 import { PermissionsGuard } from '../../auth/permissions.guard';
+import { CustomJwtService } from '../../auth/infrastructure/custom-jwt.service';
+import { SecurityPolicyService } from '../../auth/security-policy.service';
 
 import { SkinsModule } from '../../skins/skins.module';
 import { RpsModule } from '../../rps/rps.module';
@@ -24,20 +23,9 @@ import { RpsModule } from '../../rps/rps.module';
 @Module({
   imports: [
     ConfigModule,
-    PassportModule,
     TypeOrmModule.forFeature([UserOrmEntity]),
     forwardRef(() => SkinsModule),
     forwardRef(() => RpsModule),
-    JwtModule.registerAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.getOrThrow<string>('JWT_SECRET'),
-        signOptions: {
-          expiresIn: configService.get<string>('JWT_EXPIRES_IN', '7d') as any,
-        },
-      }),
-      inject: [ConfigService],
-    }),
   ],
   controllers: [UsersController, RoutesController, AdminController],
   providers: [
@@ -45,7 +33,8 @@ import { RpsModule } from '../../rps/rps.module';
     PasswordHasherAdapter,
     UuidGenerator,
     JwtTokenGenerator,
-    JwtStrategy,
+    CustomJwtService,
+    SecurityPolicyService,
     PermissionsGuard,
     {
       provide: RegisterUseCase,
@@ -70,9 +59,8 @@ import { RpsModule } from '../../rps/rps.module';
     TypeOrmUserRepository,
     RegisterUseCase,
     LoginUseCase,
-    PassportModule,
-    JwtStrategy,
-    JwtModule,
+    CustomJwtService,
+    SecurityPolicyService,
   ],
 })
 export class UsersModule {}

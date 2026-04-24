@@ -1,7 +1,5 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { JwtModule } from '@nestjs/jwt';
-import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AthleteOrmEntity } from './database/athlete.entity';
 import { TeamOrmEntity } from './database/team.entity';
 import {
@@ -45,13 +43,6 @@ import { UsersModule } from '../users/api/users.module';
       MatchStatsOrmEntity,
       UserRpsStatsOrmEntity,
     ]),
-    JwtModule.registerAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.getOrThrow<string>('JWT_SECRET'),
-      }),
-      inject: [ConfigService],
-    }),
     forwardRef(() => UsersModule),
   ],
   providers: [
